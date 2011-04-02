@@ -1,0 +1,124 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+<xsd:annotation>
+    <xsd:documentation xml:lang="en">
+
+    this is an xml schema for harpoon configuration files.
+    copyright 2004 joel sommers.
+
+    an xml schema is a way to define the structure of xml documents using
+    xml itself.  note that dtd (document type definitions) have a similar
+    function, yet are written using sgml rather than xml.  for more 
+    info, see: http://www.w3.org/TR/xmlschema-1/.  a useful validator
+    on the web is at: 
+    http://apps.gotdotnet.com/xmltools/xsdvalidator/Default.aspx.  fwiw,
+    i think xml schema definitions are easier to visually parse than dtds.
+
+
+    <!--
+         $Id: harpoon_plugins.xsd,v 1.2 2004-07-05 20:43:24 jsommers Exp $
+      -->
+
+    </xsd:documentation>
+</xsd:annotation>
+
+
+<xsd:element name="harpoon_plugins" type="pluginList" />
+
+<xsd:complexType name="pluginList">
+  <xsd:sequence>
+    <xsd:element name="plugin" 
+                 minOccurs="1" maxOccurs="unbounded" 
+                 type="pluginSpecifier" /> 
+  </xsd:sequence>
+</xsd:complexType>
+
+
+<xsd:complexType name="pluginSpecifier">
+   <xsd:sequence>
+      <xsd:element name="config_file" type="xsd:string" 
+                   minOccurs="0" maxOccurs="unbounded" />
+
+      <!-- 
+           NB: these element are only required for implementation of TCP 
+           sources, and there are different specific requirements at
+           a server or client (which are not specified in this schema).
+           also, there are different elements required for different 
+           sources.  refer to the manual...
+
+           NB: also, defining the sub-elements of the plugin as a sequence
+           is overly restrictive, since they must appear in the same order
+           as below.  in the actual code, we don't make that restriction;
+           elements can appear in any order.
+        -->
+
+      <xsd:element name="interconnection_times" type="float_list" 
+                   minOccurs="0" maxOccurs="unbounded" />
+
+      <xsd:element name="active_sessions" type="int_list" 
+                   minOccurs="0"  maxOccurs="unbounded" />
+
+      <xsd:element name="file_sizes" type="int_list" 
+                   minOccurs="0"  maxOccurs="unbounded" />
+
+      <xsd:element name="address_pool" type="addressList"
+                   minOccurs="0" maxOccurs="unbounded" />
+
+  </xsd:sequence>
+
+  <xsd:attribute name="name" type="xsd:string" use="required"/>
+  <xsd:attribute name="objfile" type="xsd:string" use="required"/>
+  <xsd:attribute name="maxthreads" type="xsd:int" use="required"/>
+  <xsd:attribute name="personality" type="personalityType" use="optional"/>
+
+</xsd:complexType>
+
+
+<xsd:simpleType name="int_list">
+  <xsd:list itemType="xsd:unsignedLong"/>
+</xsd:simpleType>
+
+<xsd:simpleType name="float_list">
+  <xsd:list itemType="xsd:float"/>
+</xsd:simpleType>
+
+<xsd:simpleType name="personalityType">
+  <xsd:restriction base="xsd:string">
+    <xsd:enumeration value="client"/>
+    <xsd:enumeration value="server"/>
+    <xsd:enumeration value="unknown"/>
+  </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="addressPoolType">
+  <xsd:restriction base="xsd:string">
+    <xsd:enumeration value="client_source_pool"/>
+    <xsd:enumeration value="client_destination_pool"/>
+    <xsd:enumeration value="server_pool"/>
+  </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:complexType name="addressList">
+   <xsd:sequence>
+      <xsd:element name="address" 
+                   minOccurs="1" maxOccurs="unbounded" 
+                   type="addressSpecifier"/>
+   </xsd:sequence>
+   <xsd:attribute name="name" type="addressPoolType" use="required"/>
+</xsd:complexType>
+
+<xsd:complexType name="addressSpecifier">
+  <xsd:attribute name="ipv4" type="ipv4Type" use="required"/>
+
+  <!-- NB: not restrictive enough -->
+  <xsd:attribute name="port" type="xsd:nonNegativeInteger" use="required"/>
+</xsd:complexType>
+
+<xsd:simpleType name="ipv4Type">
+  <xsd:restriction base="xsd:string">
+     <!-- NB: not completely accurate, but sufficient for now -->
+     <xsd:pattern value="\d{1,3}(\.\d{1,3}){0,3}(\/(\d+)){0,1}" />
+  </xsd:restriction>
+</xsd:simpleType>
+
+</xsd:schema>

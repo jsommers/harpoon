@@ -1,0 +1,149 @@
+\input texinfo.tex    @c -*-texinfo-*-
+
+@c
+@c Copyright 2004, 2005  Joel Sommers.  All rights reserved.
+@c 
+@c This file is part of Harpoon, a flow-level traffic generator.
+@c 
+@c Harpoon is free software; you can redistribute it and/or modify
+@c it under the terms of the GNU General Public License as published by
+@c the Free Software Foundation; either version 2 of the License, or
+@c (at your option) any later version.
+@c 
+@c Harpoon is distributed in the hope that it will be useful,
+@c but WITHOUT ANY WARRANTY; without even the implied warranty of
+@c MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+@c GNU General Public License for more details.
+@c 
+@c You should have received a copy of the GNU General Public License
+@c along with Harpoon; if not, write to the Free Software
+@c Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+@c
+
+
+@comment %** start of header
+@comment
+@comment $Id: harpoon_manual.texi,v 1.14 2005-10-23 15:42:20 jsommers Exp $
+@comment 
+@setfilename harpoon_manual
+@settitle Harpoon Flow-level Traffic Generator Manual
+@comment %** end of header
+
+@comment make this into a small book instead of letter-size
+@smallbook
+
+@comment divert all indicies to the concept index.
+@syncodeindex fn cp
+@syncodeindex vr cp
+@syncodeindex ky cp
+@syncodeindex pg cp
+@syncodeindex tp cp
+
+
+@copying
+This manual is for the Harpoon Flow-level Traffic Generator.  The
+following copyright notice covers the Harpoon source code, including
+all documentation, images, and ancillary files.
+
+Copyright @copyright{} 2004-2005, Joel E. Sommers.  All rights reserved.
+
+@quotation
+This file is part of Harpoon, a flow-level traffic generator.
+
+Harpoon is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+Harpoon is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Harpoon; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+@end quotation
+@end copying
+
+
+@titlepage
+@title Harpoon
+@subtitle A Flow-level Traffic Generator
+@subtitle User manual
+@author Joel Sommers
+@center @image{harpoon_icon,10cm,,,pdf}
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+@end titlepage
+
+@contents
+
+@ifnottex
+@node Top
+@top Harpoon: A Flow-level Traffic Generator
+
+@insertcopying
+@end ifnottex
+
+
+@menu
+* Overview of Harpoon:: A general discussion of what Harpoon is and
+what it does.
+* Basic Configuration:: How to generate traffic using the example 
+configuration files.
+* Advanced Configuration:: How to generate configuration files and traffic
+from your own traces.
+* Running Harpoon:: Command-line switches to Harpoon, general overview
+of starting, stopping, and loading config files.
+* Managing Harpoon:: Tools and guidelines for managing a large-scale
+installation of Harpoon daemons.
+* More Examples:: Examples of XML configuration files, scenarios of running
+and managing Harpoon.
+* Creating New Traffic Generation Modules:: So you don't like the
+traffic generation modules we give you?  Write your own!
+* Postscript:: History and acknowledgements.
+* Index:: Index of key terms.
+@end menu
+
+@include intro.texi
+
+@include basic.texi
+
+@include advanced.texi
+
+@include running.texi
+
+@include managing.texi
+
+@include appendices.texi
+
+@node Postscript
+@unnumbered Postscript
+
+The full technical paper describing Harpoon appeared in the Internet 
+Measurement Conference, Taormina, Sicily, Italy, in October 2004
+(@uref{http://www.cs.wisc.edu/~jsommers/pubs/p173-sommers.pdf}).
+Harpoon first appeared as an extended poster at the SIGMETRICS conference, 
+New York, New York, USA, in June 2004
+(@uref{http://portal.acm.org/citation.cfm?doid=1005686.1005733}).  
+
+Thanks to Jeff Sommers for making the Harpoon icon.  Thanks to Dave 
+Plonka at the University of Wisconsin for help understanding limitations of
+flow records.  
+
+
+@c
+@c Thanks to the following people for feedback on initial versions of the
+@c software and manual:  Yolanda Tsang, Aashish Sharma
+@c
+
+
+@node Index
+@unnumbered Index
+
+@printindex cp
+
+@bye
+

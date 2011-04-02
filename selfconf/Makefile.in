@@ -1,0 +1,33 @@
+#
+# $Id: Makefile.in,v 1.7 2004-08-20 18:01:36 jsommers Exp $
+#
+
+srcdir = @srcdir@
+VPATH = @srcdir@
+
+#############################################################################
+
+TARGET=harpoon_flowproc
+OBJS=harpoon_flowproc.o
+all: harpoon_flowproc
+
+CXX=@CXX@
+CPPFLAGS=@CPPFLAGS@ -I../src
+CXXFLAGS=@CXXFLAGS@
+SHLIB_EXT=@SHLIB_EXT@
+SHLIB_FLAG=@SHLIB_FLAG@
+LIBS=@LIBS@ @LIBFT@ -lz
+LDFLAGS=@LDFLAGS@
+
+harpoon_flowproc: $(OBJS)
+	$(CXX) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
+
+clean:
+	rm -rf $(TARGET) $(OBJS)
+
+distclean: clean
+	rm -f Makefile
+
+.cc.o:
+	$(CXX) -c $(CXXFLAGS) $(CPPFLAGS) $<
+

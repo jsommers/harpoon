@@ -1,0 +1,215 @@
+@c
+@c $Id: managing.texi,v 1.5 2005-08-05 19:36:35 jsommers Exp $
+@c
+
+@c
+@c Copyright 2004, 2005  Joel Sommers.  All rights reserved.
+@c 
+@c This file is part of Harpoon, a flow-level traffic generator.
+@c 
+@c Harpoon is free software; you can redistribute it and/or modify
+@c it under the terms of the GNU General Public License as published by
+@c the Free Software Foundation; either version 2 of the License, or
+@c (at your option) any later version.
+@c 
+@c Harpoon is distributed in the hope that it will be useful,
+@c but WITHOUT ANY WARRANTY; without even the implied warranty of
+@c MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+@c GNU General Public License for more details.
+@c 
+@c You should have received a copy of the GNU General Public License
+@c along with Harpoon; if not, write to the Free Software
+@c Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+@c
+
+@cindex XML-RPC management
+@cindex managing harpoon
+@cindex remote management
+@node Managing Harpoon
+@chapter Managing harpoon
+
+In addition to using XML for its config files, Harpoon includes a
+restricted HTTP daemon which understands POST commands for XML-RPC,
+and PUT commands for upload of configuration and plugin files.  These
+interfaces can be used to remotely manage Harpoon daemons.  This chapter
+describes a usage of a PHP script for web-based Harpoon management.  We
+also give details on the XML-RPC / HTTP interfaces to Harpoon.
+
+@section Web-based Management
+
+A PHP (@uref{http://www.php.net}) script (@code{manage_harpoon.php}) and some 
+Javascript and CSS support files are included with Harpoon to facilitate 
+large-scale management of Harpoon.  This section describes usage and design 
+of this feature.
+
+Sorry - this script is not documented yet (and not fully tested anyway).
+
+@subsection Using @code{manage_harpoon.php}
+@strong{FIXME}
+
+@subsection Setting up Apache and PHP
+@strong{FIXME}
+
+
+@section Lower-level Management Interfaces
+
+A restricted HTTP server is embedded in Harpoon which allows remote management
+using XML-RPC.  The HTTP PUT method is also understood, allowing upload of
+XML configuration files and plugin binaries to remote Harpoon daemons.  This
+section describes these low-level details of managing Harpoon.  Normally, you
+do not need to be concerned with these details unless the supplied web
+interface is insufficient for your needs.
+
+@cindex XML-RPC management
+@cindex XML-RPC methods
+@subsection Supported XML-RPC Methods
+
+The following table lists all XML-RPC methods recognized by Harpoon.
+The @command{harpoon} executable listens to port 8180 by default for
+requests.  This can be changed with the @option{-p} switch, described
+in @xref{harpoon command-line parameters}.  There are simple Python scripts
+supplied with the Harpoon distribution that demonstrate the basics of
+making management RPCs.  For further reference, see
+@uref{http://www.xmlrpc.org/} (there is a very useful tutorial
+available at this site) and the Python documentation, available at
+@uref{http://www.python.org/}.
+ 
+A restriction to be aware of with the XML-RPC interface of Harpoon is
+that it is @strong{single-threaded}.  That is, it can only handle one
+request at a time.  This implementation has the side-effect that any
+call that blocks for some amount of time will prevent any subsequent
+calls from executing until the blocked call finishes.  (The primary
+reason for implementing the listener as a single thread is to limit
+the number of threads used by @command{harpoon} itself, leaving as
+many resources available as possible for user-level traffic generation
+threads.)
+
+Simple scripts using each of the interfaces described below are provided
+in the @file{cli} subdirectory.  You may also wish to look briefly the
+@ref{stats.py tool example} for a concrete reference using one of these
+interfaces.
+
+@table @command
+@item system.listMethods
+List all methods recognized by the server.  Other standard 
+@command{system} interfaces, such as @command{system.methodSignature} and
+@command{system.methodHelp} are not (yet) available.
+
+@item system.null
+Ping the server.  Returns the string @code{null}.  No parameters are
+expected.
+
+@item loadConfig
+Load an XML configuration file.  The file name is given as a parameter
+to this method.  The file name may include a relative path from the
+working directory of @command{harpoon}.  Note that any configuration
+files nested in the one currently being loaded (named by this method)
+must also be named with paths relative to the working directory of
+@command{harpoon}.  A boolean value is returned indicating success or
+failure.
+
+@item unloadConfig
+Unload a plugin configuration.  The plugin name is supplied as a
+parameter to this method.  Any plugin state is destroyed (a la
+unloadPlugin() --- see below), and configuration data for the plugin
+is also destroyed.  The plugin must be idle for this method to
+succeed.  A boolean value is returned indicating success or failure.
+
+@item queryPlugins
+Returns a list of structures describing all plugin configurations that
+have been loaded.  No parameters are expected.
+
+@item unloadPlugin
+Unload the shared object implementing a plugin, leaving the
+configuration in-tact.  One parameter is expected, the name of the
+plugin.  The plugin must have been previously stopped for this call to
+succeed.  Returns a string indicating success or failure.  This call
+can be useful to destroy any static state retained by the plugin
+across calls to @command{startPlugin} and @command{stopPlugin}.  That
+is, any statistics held in static variables of the class implementing
+the plugin are wiped clean as a side-effect.  A boolean value is returned
+to indicate success or failure.
+
+@item loadPlugin
+One parameter is required, the plugin name.  Load the shared object
+for the plugin named in the parameter.  The plugin configuration must
+already have been loaded for this call to succeed.  A boolean value is
+returned indicating success or failure.
+
+@item stopPlugin
+One parameter is required, the plugin name.  Stop all threads running
+for the named plugin.  Returns a boolean indicating success or failure.
+Note that this call may take non-negligible time because of delay in
+gracefully stopping traffic generation threads.  Be patient.
+
+@item startPlugin
+One parameter is required, the plugin name.  Starts user-level threads
+for the named plugin.  If the shared object for the plugin has not
+already been loaded, this loading is done as a side-effect of this
+call.  The plugin must be idle and/or unloaded for this call to
+succeed.  A boolean value is returned indicating success or failure.
+
+@item getStats
+No parameters are expected.  Returns an array of structures indicating
+status and statistics of Harpoon and all loaded plugins.
+
+@item resetAll
+No parameters are expected.  Stops all running plugins, resets the
+emulated hour to 0 (zero) and restarts all plugins.  A boolean value
+indicating success or failure is returned.
+
+@item suicide
+No parameters are expected.  Initiates a shutdown of all threads
+inside Harpoon, including Harpoon itself.  A meaningless string is returned.
+@end table
+
+
+@cindex configuration file distribution
+@cindex plugin file
+@cindex managing harpoon
+@cindex remote management
+@subsection Uploading Files with HTTP @command{PUT}
+
+In addition to processing XML-RPC methods using the HTTP POST command
+over port 8180, Harpoon also recognizes HTTP PUT commands.  Using PUT
+can be useful in distributing configuration and plugin files across a
+number of Harpoon processes.  No tools are distributed with Harpoon
+for distributing files.  You are advised to use existing free tool
+such as @command{curl} or @command{wget} for this task.  The
+destination file name is given as the URI, and may include a relative
+path.  Any preceeding forward slashes are discarded.
+
+Examples of uploading configuration files and plugins using @command{curl} are
+given below:
+
+@smallexample
+@verbatim
+$ curl --upload-file dummy_plugin.xml \ 
+  http://10.2.0.2:8180/dummy_plugin.xml
+ % Total % Recvd % Xferd Average Speed            Time            Curr.
+                          Dload  Upload Total    Current  Left    Speed
+100 961  0   0  100  961     0    961   0:00:01  0:00:00  0:00:01   961
+100 963  0   2  100  961     2    961   0:00:01  0:00:00  0:00:01     0
+$
+$ curl --upload-file dummy_plugin.so \ 
+  http://10.2.0.2:8180/test/dummy_plugin.so
+ % Total % Recvd % Xferd Average Speed            Time            Curr.
+                          Dload  Upload Total    Current  Left    Speed
+ 54 37563 0  0   54 20480   0    20480 0:00:01   0:00:00  0:00:01 20480
+100 37565 0  2  100 37563   2    37563 0:00:01   0:00:00  0:00:01 2780k
+$
+@end verbatim
+@end smallexample
+
+In the first example, an XML configuration file
+(@code{dummy_plugin.xml}) is written to the
+working directory of Harpoon.  In the second example, a shared object
+plugin @code{dummy_plugin.so} is written to the @code{test}
+subdirectory under the working directory of @command{harpoon}.
+
+Note that there are clear security consequences of the PUT command.  At
+present there is @strong{no} support for authentication or encryption of
+transactions using SSL.  There is also at present no way disable the
+XML-RPC interface.  These features may be added at a later date.
+
+

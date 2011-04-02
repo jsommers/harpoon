@@ -1,0 +1,556 @@
+@c
+@c $Id: advanced.texi,v 1.13 2005-10-23 15:42:19 jsommers Exp $
+@c
+
+@c
+@c Copyright 2004, 2005  Joel Sommers.  All rights reserved.
+@c 
+@c This file is part of Harpoon, a flow-level traffic generator.
+@c 
+@c Harpoon is free software; you can redistribute it and/or modify
+@c it under the terms of the GNU General Public License as published by
+@c the Free Software Foundation; either version 2 of the License, or
+@c (at your option) any later version.
+@c 
+@c Harpoon is distributed in the hope that it will be useful,
+@c but WITHOUT ANY WARRANTY; without even the implied warranty of
+@c MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+@c GNU General Public License for more details.
+@c 
+@c You should have received a copy of the GNU General Public License
+@c along with Harpoon; if not, write to the Free Software
+@c Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+@c
+
+
+@cindex XML configuration file structure
+@cindex configuration file structure
+@node Advanced Configuration
+@chapter Advanced Configuration
+
+In the previous chapter, basic configuration of Harpoon was discussed,
+including configuration file validation, setting desired endpoint addresses,
+and tuning Harpoon to produce the desired traffic volume.  This chapter
+fills in gaps from the previous chapter by discussing, in more detail,
+the structure of Harpoon configuration files (using the TCP traffic
+generator plugins as the basis for discussion), and the use of 
+the self-configuration tools.
+
+Harpoon uses XML documents for its config files.  As described in
+@ref{validation of config files}, an XML schema 
+is distributed with Harpoon that defines the structure of config files
+for the supplied TCP traffic plugin.
+Tools are provided to automatically generate configuration files from raw
+flow records.  There is also a tool,
+@command{config_validator}, which is a simple validator of config files.
+The validator can't catch all logical errors, but it will catch all 
+syntactical errors.
+
+While the self-configuration tool @command{harpoon_conf.py} can generate valid 
+config files for Harpoon, it is often useful to manually tweak the files 
+produced by this script depending on testbed requirements.  For this reason,
+description of how to use the self-configuration tools is followed by
+a discussion of the detailed structure of configuration files.
+
+@cindex self-configuration 
+@cindex configuring
+@node Self-Configuration Tools
+@section Self-Configuration Tools
+
+For self-configuration, there are two required steps, and one optional step.
+@enumerate
+@item Process flow records using the @command{harpoon_flowproc} tool. 
+The flow records can be in Netflow version 5 wire format or in
+ @command{flow-tools} format.  The output of this step is an intermediate flow 
+representation.
+@item Process the intermediate format produced in the previous step using
+the @command{harpoon_conf.py} tool to produce Harpoon config files.
+@item Optionally, the configuration files produced in step 2 can be
+processed to produce a bit rate different from the original flow trace.
+The @command{harpoon_reconf.py} tool takes two Harpoon configuration files
+as input to perform this task.
+@end enumerate
+
+@node advanced harpoon_flowproc
+@cindex harpoon_flowproc tool
+@section The @command{harpoon_flowproc} tool
+
+The @command{harpoon_flowproc} tool takes raw flow records in either
+Netflow version 5 wire format, or in @command{flow-tools} format.  If
+your system does not have @command{flow-tools} installed, you'll only
+be able to use the raw Netflow capability.  The tool takes the flow
+records as standard input and produces an intermediate format on standard
+output.  This intermediate format is used by the tool 
+@command{harpoon_conf.py} (@pxref{advanced harpoon_conf.py}, below) to
+produce configuration files for Harpoon.
+
+By default, @command{harpoon_flowproc} uses an @math{IntervalDuration} value
+of 60 seconds, expects TCP flags in the flow records, and expects the input
+format to be @command{flow-tools}.  See @ref{running harpoon_flowproc} for
+more information on command line options.  The example below shows
+an hour's worth of flow records being piped into @command{harpoon_flowproc},
+with the output written to @file{flowproc.out}.  It shows that there
+were over 4 million flows over that hour, with about 1.8 million TCP flows.
+However, only 1.2 million TCP flows had SYN and FIN or RST flags (i.e.,
+were ``well-formed'').  Finally, flow surgery did not have to be performed
+on any of the flows.  (Note that it isn't abnormal that surgery is minimal
+or not required, at least on flow record traces I've looked at.)
+
+@smallexample
+$ flow-cat ft-v05.2002-07-31.13* | ./harpoon_flowproc -i 60 > flowproc.out
+sorting tcp flow records...  took 25 sec.
+total flows: 4071060
+total TCP flows: 1867860
+total well-formed TCP flows: 1216691
+surgery performed: 0
+$
+@end smallexample
+
+@node advanced harpoon_conf.py
+@cindex harpoon_conf.py tool
+@section The @command{harpoon_conf.py} tool
+
+The Python script @command{harpoon_conf.py} uses the output from the tool
+@command{harpoon_conf} to produce configuration files for Harpoon.
+In the example below, an interval duration of 600 seconds is specified 
+(@option{-i} 600), source and destination address pools are specified
+(@option{-S} and @option{-D} options), and output config files have
+a prefix of ``testoutput''.  See @ref{running harpoon_conf.py} for
+more information on command line parameters.
+
+@smallexample
+$ ./harpoon_conf.py -i 600 -S '10.54.1.0/24' -D '10.54.42.1/32' \ 
+  -p testoutput flowproc.out 
+got starting time from file header:  1028138318.2
+progress (10k lines):  . . . . . . . . . .   100000
+. . . . . . . . . . .   200000
+. . . . done ( 232645 lines)
+$
+@end smallexample
+
+The configuration files resulting from this script may still need to be
+tweaked.  In particular, the number of active sessions set in the client
+configuration file may exceed the maximum number of threads per
+process on the operating system where Harpoon will be run.  Either that,
+or you may wish to set up a multi-host configuration, splitting the load
+generation over some number of machines.  For these situations, you will
+have to manually edit the configuration files, changing the number of
+active sessions to an appropriate value, and setting client source
+and destination addresses to appropriate values.
+
+
+@node advanced harpoon_reconf.py
+@cindex harpoon_reconf.py tool
+@section The @command{harpoon_reconf.py} tool
+
+The @command{harpoon_reconf.py} is used to tune existing client and
+server configuration files to produce a specified bit rate.  The configuration
+files that this script uses can be produced by the @command{harpoon_conf.py}
+tool or can be made using configuration files based on distributions from 
+known distributions.  In the example below, the target rate is specified
+as 5 Mbps and the script reports that 314 sessions should be configured
+to produce this volume.  The script itself does not modify the configuration
+files, so this value must be set in the client configuration file.
+See also @ref{Modifying a Configuration to Produce Different Traffic Volumes},
+and @ref{running harpoon_reconf.py}.
+
+@smallexample
+$ ./harpoon_reconf.py -d -c testoutput_tcpclient.xml \ 
+  -s testoutput_tcpserver.xml -i 300 -r 5000000
+target volume:  187500000.0
+interval duration:  300
+client conf file:  testoutput_tcpclient.xml
+server conf file:  testoutput_tcpserver.xml
+target: 187500000.0 carry: 0
+targetbytes 187500000.0 simbytes 187720505 median 320 mean 314 \ 
+  stdev 55.02035895 max 415 flows 16174
+number of sessions should be 314 to achieve volume of  187500000 bytes \ 
+  (5000000.0 bits/sec)
+$
+@end smallexample
+
+
+@node Configuration File Structure
+@section Configuration File Structure
+@cindex configuration file structure
+@cindex configuration file example
+@cindex XML configuration file structure
+
+The best way to describe the structure of Harpoon config files is
+through an example:
+
+@smallexample
+<?xml version="1.0"?>
+<harpoon_plugins>
+        <plugin name="Example" objfile="example.so"
+                maxthreads="42", personality="server">
+
+            ... 
+
+        </plugin>
+</harpoon_plugins>
+@end smallexample
+
+The top-level tag in any config file must be @code{<harpoon_plugins>}.
+Within that element, any number of traffic generation @code{<plugin>}s
+may be defined.  Every Harpoon configuration file @strong{must} be
+structured this way - the XML parser that Harpoon uses (@code{expat}
+--- @uref{http://expat.sourceforge.net/}) enforces this requirement.
+
+
+@cindex plugins
+@subsection @code{<plugin>} Definitions
+
+For the @code{<plugin>} element, there are three require attributes,
+and one optional attribute:
+
+@table @strong
+@item name
+An identifier for this plugin.  It must be unique for all incarnations
+of a traffic generator module running under the control of a single
+@command{harpoon} executable.  That is, you must have separate
+@code{<plugin>} tags defined for client and server portions of the
+same traffic generator if they are running in the same
+@command{harpoon} process.  For example, for the client-side of a TCP
+plugin you might use the name ``TCPClient'' and for the server-side
+you might use ``TCPServer''.
+
+@item objfile
+The object file into which traffic generation code is compiled.  For
+most UNIX-like operating systems, this file will end in the extension
+@code{.so}.  For MacOS X, this extension is normally @code{.dylib}.
+
+@item maxthreads
+An integer defining the maximum number of threads to create for this
+plugin.  One thread represents one Harpoon session.  Note
+that different operating systems impose limits on the maximum number
+of threads per process.  Harpoon will happily attempt to create one
+million threads if you ask it to --- it is up to you to make sure this
+number makes sense.  If Harpoon is unable to create the number of
+threads you ask for it will croak, leaving both you and the formerly
+running @command{harpoon} quite miserable.
+
+@item personality
+This attribute should contain the value @samp{server} or @samp{client}.
+Harpoon is organized as a client-server application.  This attribute
+specifies how the traffic generator named in the configuration file should 
+behave, either as a client or as a server.  More specifically, each plugin
+module has two code entrypoints: @code{server_session} and 
+@code{client_session}.  The entrypoint taken depends on this attribute.
+See @ref{Creating New Traffic Generation Modules} for more details.
+@end table
+
+@node Configuring Distributions
+@cindex distributions
+@cindex distributional parameters
+@subsection Configuring Distributions
+
+Within a @code{<plugin>} element, you define the distribution data
+used by the plugin.  Depending on the ``personality'' of the plugin and
+on the particular traffic generator, different distributions may be required.  
+For example, for the TCP client, file sizes are irrelevant since it is the 
+server that generates files.  Note that the @command{config_validator} tool 
+does not assume that @emph{all} distributions are required and checks only 
+for the existence of distributions that make sense based on the configured 
+personality.
+
+As described in @ref{Overview of Harpoon} and summarized in
+@ref{distributional parameters}, there are five distributions
+comprising Harpoon's architectural model for TCP flows.  Configuration of 
+three of those parameters is described here.  Addressing is described in the
+following section.
+
+Each of the parameters @math{P_{FileSize}}, @math{P_{InterConnection}},
+@math{P_{ActiveSessions}}, @math{P_{IPRange_{src}}}, and 
+@math{P_{IPRange_{dest}}}
+are configured using XML tags
+@code{<file_sizes>}, @code{<interconnection_times>}, @code{<active_sessions>}, 
+and @code{<address_pool>}, respectively, also
+shown in the example below.  Whitespace-separated values for each
+distribution should be written between start and end tags for the respective
+element.  There is no required order among these tags.  
+For the TCP plugin, servers expect @code{<file_sizes>} and 
+@code{<active_sessions>}.  File sizes values are given in bytes.  
+Clients expect @code{<interconnection_times>} and @code{<active_sessions>}.  
+Interconnection times are given in (floating point) seconds.  Both endpoints
+require @code{<address_pool>} tags, as described below.
+
+@cindex active sessions distribution
+The @code{<active_sessions>} tag identifies the number of Harpoon sessions
+(threads) that should be active for a given interval.  By default, this
+interval is assumed to be an 60 seconds, though it need not be so.  By
+adjusting the ``warp factor'' (@option{-w} option, 
+@ref{harpoon command-line parameters})
+on the @command{harpoon} command-line, any mapping between emulation
+time and wall-clock time may be made.  The Harpoon plugin controller
+will adjust the number of active threads per interval according to the
+distribution given in @code{<active_sessions>}.  By default, Harpoon will
+iterate @strong{once} through the list of @code{<active_sessions>}, then
+plugin activity will cease (@emph{i.e.}, number of active sessions will
+be set to 0).  For clients, this is often the desired behavior.  For servers,
+however, this is very often not desirable.  The @option{-c} flag can be
+given to Harpoon so that it cycles continuously over its list of
+@code{<active_sessions>}.
+
+The @code{maxthreads} attribute described above serves as a cap to the
+number of threads to be created for a plugin.  If values given for
+@code{<active_sessions>} exceeds maxthreads, no threads beyond
+@code{maxthreads} will be created.  For the client-side, the
+relationship between the values given for @code{<active_sessions>} and
+load generated by Harpoon should be straightforward.  For servers, it
+is often best to simply supply one value (which should usually be the
+same as the value given for @code{maxthreads}) so that enough server
+handlers are running at all times.  Choosing this value is akin to
+provisioning a web server, and the default values set by the Harpoon
+configuration tools may or may not need tuning in different environments.
+
+The next two examples show how the three distributions described above
+appear in configuration files.  For these examples, the plugin
+headers (attributes) are not specified, only the applicable distributions.
+
+@cindex file size distribution
+For a TCP server, only the @code{<active_sessions>} and @code{<file_sizes>}
+elements are required:
+@smallexample
+        <plugin @dots{} >
+                <!-- for a TCP server configuration -->
+                <active_sessions> 
+                     47
+                </active_sessions>
+
+                <file_sizes> 
+                     200 42000 300 1200 5400 @dots{} 
+                </file_sizes>
+
+                @dots{}
+        </plugin>
+@end smallexample
+
+@cindex inter-connection time distribution
+For a TCP client, only the @code{<active_sessions>} and 
+@code{<interconnection_times>} elements are required:
+
+@smallexample
+        <plugin @dots{} >
+                <!-- for a TCP client configuration -->
+                <active_sessions> 
+                     50 58 60 61 70 75 @dots{} 
+                </active_sessions>
+
+                <interconnection_times> 
+                     1.2 0.3 4.95 1.5 0.1 0.9  @dots{} 
+                </interconnection_times>
+
+                @dots{}
+        </plugin>
+@end smallexample
+
+@node Configuring Addresses
+@cindex addressing
+@cindex address range distributions
+@subsection Configuring Addresses
+
+This section introduces the XML tags for configuring client source and
+destinations addresses, and server addresses.  
+The basic ideas are:
+@itemize @bullet
+@item when clients make requests to servers, they bind to local
+@dfn{source addresses} and ports, and connect to remote 
+@dfn{destination addresses} and ports;
+@item servers bind to a server address and port, waiting for client
+requests;
+@ client source addresses can be specified, or can be set to allow the operating
+system to assign a default local address (the same goes for servers).
+@end itemize
+
+All addresses (client source addresses, client destination addresses,
+and server addresses) are defined using the XML tag @code{<address_pool>},
+but with different values for the required attribute @code{name}.
+Within each address pool, there may be any number of @code{<address>} 
+elements.  
+Each @code{<address>} element must contain exactly two attributes:
+@code{ipv4} and @code{port}.  The address element must be in a
+CIDR-style format@footnote{A current limitation with this scheme is
+that all four bytes of an IPv4 address must be given even for short
+prefixes.  Instead of writing @code{10.5/16}, you should write
+@code{10.5.0.0/16}.}.  
+The port value
+of 0 is a special value which indicates that the operating system
+should automatically choose a local ephemeral port for the connection.
+Likewise, the address ``0.0.0.0'' means that the client should bind to
+the default local address, and the server should bind to ``*''.
+For server addresses, only one address and port should be defined: multihoming
+in this way is not implemented yet.
+
+Note that these addresses say nothing about protocol.
+Protocol-specific items are defined within plugin code.
+
+The address attribute name ``ipv4'' suggests that other kinds
+of addresses are possible.  At present, only IPv4 addresses are
+supported but it is conceivable that IPv6 will be supported in the
+future.  Using any attribute for an address except ``ipv4'' will
+generate a configuration file parse error.
+
+Continuing with the examples from above, the server address pool might
+defined as:
+
+@smallexample
+        <plugin @dots{} >
+                <!-- for a TCP server configuration -->
+                <active_sessions> 
+                     47
+                </active_sessions>
+
+                <file_sizes> 
+                     200 42000 300 1200 5400 @dots{} 
+                </file_sizes>
+
+                <address_pool name="server_address">
+                        <address ipv4='0.0.0.0' port='10000'/>
+                </address_pool>
+        </plugin>
+@end smallexample
+
+In this case, the server binds to ``*.10000''.  That is, port 10000 for any
+local address on the server.  For the client configuration, we define
+a source address pool of 64 address (actually, 62 usable addresses, not 
+including the host and broadcast addresses) and for destination addresses
+we define two separate class C networks (254 usable addresses):
+
+@smallexample
+        <plugin @dots{} >
+                <!-- for a TCP client configuration -->
+                <active_sessions> 
+                     50 58 60 61 70 75 @dots{} 
+                </active_sessions>
+
+                <interconnection_times> 
+                     1.2 0.3 4.95 1.5 0.1 0.9  @dots{} 
+                </interconnection_times>
+
+                <address_pool name="client_source_addresses">
+                        <address ipv4='192.168.1.0/26' port='0' />
+                </address_pool>
+
+                <address_pool name="client_destination_addresses">
+                        <address ipv4='192.168.47.0/24' port='10000'/>
+                        <address ipv4='192.168.46.0/24' port='9900'/>
+                        @dots{}
+                </address_pool>
+        </plugin>
+@end smallexample
+
+@cindex configuration file example
+@node Putting It All Together
+@subsection Putting It All Together
+
+To wrap up the examples in this section, we fill in the main plugin attributes
+to complete the configuration files.  For the server:
+
+@smallexample
+        <plugin name="ServerExample" objfile="tcp_plugin.so"
+                maxthreads="47", personality="server">
+
+                <!-- for a TCP server configuration -->
+
+                <active_sessions> 
+                     47 
+                </active_sessions>
+
+                <file_sizes> 
+                     200 42000 300 1200 5400 @dots{} 
+                </file_sizes>
+
+                <address_pool name="server_address">
+                        <address ipv4='0.0.0.0' port='10000'/>
+                </address_pool>
+        </plugin>
+@end smallexample
+
+And for the client:
+
+@smallexample
+        <plugin name="ClientExample" objfile="tcp_plugin.so"
+                maxthreads="75", personality="client">
+
+                <!-- for a TCP client configuration -->
+
+                <active_sessions> 
+                     50 58 60 61 70 75 @dots{} 
+                </active_sessions>
+
+                <interconnection_times> 
+                     1.2 0.3 4.95 1.5 0.1 0.9  @dots{} 
+                </interconnection_times>
+
+                <address_pool name="client_source_addresses">
+                        <address ipv4='192.168.1.0/26' port='0' />
+                </address_pool>
+
+                <address_pool name="client_destination_addresses">
+                        <address ipv4='192.168.47.0/24' port='10000'/>
+                        <address ipv4='192.168.46.0/24' port='9900'/>
+                        @dots{}
+                </address_pool>
+        </plugin>
+@end smallexample
+
+
+@node Nesting Configuration Files
+@cindex configuration file structure
+@cindex XML configuration file structure
+@subsection Nesting Configuration Files
+
+A feature of Harpoon configuration files is that one file may include
+another, allowing a user of Harpoon to nest configuration files and
+reuse identical distribution data in more than one plugin without
+duplicating the data itself.  
+
+Using the tag @code{<config_file>} as in the example below causes the
+named file to be substituted in place:
+
+@smallexample
+        <plugin @dots{} >
+        @dots{}
+        <config_file> file_sizes.xml </config_file>
+        @dots{}
+        </plugin>
+@end smallexample
+
+Assume the file @code{file_sizes.xml} contains:
+@smallexample
+        <file_sizes> 500 23423 837 7735 </file_sizes>
+@end smallexample
+
+The resulting configuration would ``behave'' as if you had written:
+
+@smallexample
+        <plugin @dots{} >
+        @dots{}
+        <file_sizes> 500 23423 837 7735 </file_sizes>
+        @dots{}
+        </plugin>
+@end smallexample
+
+A very important thing to note is that each configuration file used by
+Harpoon (whether it is a ``top-level'' configuration file or one that
+is included by another) must be a well-formed XML document.  One
+consequence is that files can contain only one top-level element.
+Essentially, this means that a file containing exactly the following:
+
+@smallexample
+<active_users> 55 67 79 80 100 140 142 130 110 </active_users>
+<file_sizes> 500 23423 837 7735 </file_sizes>
+@end smallexample
+
+is @strong{illegal} --- the XML parser that Harpoon uses will
+complain loudly.  You must structure your config files to accomodate
+this restriction.  
+
+Another point to note (which will be described again below) is that
+while you may use file names that include full or relative paths, any
+relative paths will be relative to the working directory of the
+@command{harpoon} executable.  Any plugin object files referenced in
+configuration files will also be referred to relative to the working
+directory of @command{harpoon}.
+

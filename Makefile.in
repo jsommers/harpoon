@@ -1,0 +1,62 @@
+#
+# $Id: Makefile.in,v 1.13 2005-08-06 17:44:14 jsommers Exp $
+#
+# 
+# Copyright 2004, 2005  Joel Sommers.  All rights reserved.
+# 
+# This file is part of Harpoon, a flow-level traffic generator.
+# 
+# Harpoon is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# Harpoon is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with Harpoon; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+# 
+
+srcdir = @srcdir@
+prefix = @prefix@
+VPATH = @srcdir@
+
+#############################################################################
+
+.PHONY: src doc selfconf
+all: src 
+
+src:
+	@echo "making main harpoon engine."
+	$(MAKE) -C src
+
+doc:
+	@echo "making documentation."
+	$(MAKE) -C doc
+
+selfconf:
+	@echo "making self-configuration tools."
+	$(MAKE) -C selfconf
+
+install: src 
+	@INSTALL@ -dv -m 0755 @prefix@
+	@INSTALL@ -dv -m 0755 @prefix@/plugins
+	@INSTALL@ -bcv -m 0755 src/harpoon @prefix@
+	@INSTALL@ -bcv -m 0755 src/run_harpoon.sh @prefix@
+	@INSTALL@ -bcv -m 0755 src/plugins/*.@SHLIB_EXT@ @prefix@/plugins
+
+clean:
+	$(MAKE) -C src clean 
+	$(MAKE) -C doc clean 
+	$(MAKE) -C selfconf clean 
+
+distclean: 
+	$(MAKE) -C src distclean 
+	$(MAKE) -C doc distclean 
+	$(MAKE) -C selfconf distclean 
+	rm -f config.status config.log examples/cfg_example.xml examples/tcp_client.xml examples/tcp_server.xml examples/tcp_client_ex2.xml examples/tcp_server_ex2.xml examples/udp_client.xml examples/udp_server.xml examples/dummy_plugin.xml examples/inftcp_server.xml examples/inftcp_client.xml Makefile 
+

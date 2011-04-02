@@ -1,0 +1,66 @@
+-
+- $Id: INSTALL,v 1.4 2005-10-23 15:45:47 jsommers Exp $
+-
+
+This is a build and installation summary for Harpoon.  See the documentation
+for more details. 
+
+
+REQUIREMENTS
+============
+
+Requirements for building Harpoon are pretty easily satisfied.  They are:
+1)  c++ compiler with a working STL
+2)  eXpat library (expat.sourceforge.net)
+3)  POSIX threads
+
+Harpoon is known to build and run on FreeBSD 5.1-5.4, Linux 2.2-2.6, 
+MacOS X 10.2-10.4, and Solaris 8-10.  Harpoon does not build on Windows,
+though there is an intent to eventually make that possible.  Note also
+that on some systems, the default make program doesn't handle the makefiles
+in Harpoon.  For best results, use GNU make and gcc version >= 2.95
+
+
+To use the optional self-configuration tools, there are two requirements:
+1)  Python (version 2.3 or greater) (www.python.org)
+2)  flow-tools package (www.splintered.net/sw/flow-tools)
+
+The main components of Harpoon can still be built without these latter
+two items, you'll just get a warning when configuring and building Harpoon
+which can be ignored.
+
+
+BUILD and INSTALL
+=================
+
+1) run configure script in top-level directory.  This step will build 
+appropriate Makefiles for your system.
+
+2) make.  By default, main components of Harpoon, all plugins, and some
+miscellaneous tools are built.  You may also say "make selfconf" to build
+the self-configuration tool(s).  Use GNU make, if available.
+
+3) (optional) make doc.  You'll need the GNU texinfo tools and/or doxygen
+to make this work.
+
+4) (optional) make install.  By default, all components will be installed
+in /usr/local/harpoon/.  Use --prefix flag of configure script to change
+this location.
+
+
+RUNNING HARPOON
+===============
+
+These steps are intentionally cryptic - read the documentation for details.
+The following steps are only intended to allow sanity-checking a build to
+make sure that (at least) a simple plugin can be loaded by Harpoon.
+
+First, you'll probably have to set LD_LIBRARY_PATH (Linux, FreeBSD and Solaris)
+or DYLD_LIBRARY_PATH (MacOS X) to the directory where plugin objects live.
+
+Then, from the top-level directory, run 
+$ ./src/harpoon -f examples/dummy_plugin.xml -v10
+$ type ^C to kill it
+
+Read the documentation for better examples.
+

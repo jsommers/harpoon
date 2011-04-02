@@ -1,0 +1,13 @@
+<harpoon_plugins>
+
+  <plugin name="TcpServer" objfile="tcp_plugin.@SHLIB_EXT@" 
+          maxthreads="1" personality="server">
+      <file_sizes> 10000 </file_sizes>
+      <active_sessions> 1 </active_sessions>
+
+      <address_pool name="server_pool">
+          <address ipv4="127.0.0.1/32" port="10000" />
+      </address_pool>
+  </plugin>
+
+</harpoon_plugins>

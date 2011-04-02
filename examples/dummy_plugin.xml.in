@@ -1,0 +1,15 @@
+<harpoon_plugins>
+
+  <!-- 
+    DummyPlugin doesn't do anything - just an example of a simple plugin
+    -->
+
+  <plugin name="DummyServer" objfile="dummy_plugin.@SHLIB_EXT@" maxthreads="1" personality ="server">
+      <active_sessions> 1 </active_sessions>
+  </plugin>
+
+  <plugin name="DummyClient" objfile="dummy_plugin.@SHLIB_EXT@" maxthreads="1" personality ="client">
+      <active_sessions> 1 </active_sessions>
+  </plugin>
+
+</harpoon_plugins>

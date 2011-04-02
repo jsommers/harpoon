@@ -1,0 +1,26 @@
+                                                      number of active sessions
+                          /------------------------/|   is modulated to achieve
+ Session Level          /number of active sessions/ |   desired traffic volume.
+                       |--------------------------| |
+ (analogous to         |                          | |
+  canonical three-     |    IPsrcA <--> IPdstB    | |    source and destination
+  tuples)              |                          | |    addresses are assigned
+                       |------------------------- |/      to active sessions to
+                                                         obtain desired spatial
+                                    |                              distribution 
+                                    |
+                            (a single session)
+                                    |
+                                    v
+
+Connection Level
+                       aaaaaaa   cc           eeeeee
+(analogous to          |   bbbbbbbb  dddd     |
+ canonical five-       |   |     |   |        |         letter groups represent
+ tuples)               |   |     |   |        |                individual files
+                       |   |     |   |        |
+                       v - v --- v - v ------ v
+                         \    \    |     /
+                           \   \   |   /
+                             \  \  | /
+                         inter-connection times

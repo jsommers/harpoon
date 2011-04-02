@@ -1,0 +1,26 @@
+There are three config examples in this directory:
+
+1) dummy_plugin.xml
+   The dummy plugin doesn't do anything but print a message every few
+   seconds.  It exists primarily as an example to show the skeleton of
+   a traffic generator plugin.  
+
+2) tcp_client.xml + tcp_server.xml
+   A simple TCP client/server pair that communicates over the loopback 
+   interface.  The distribution data is totally bogus.  
+
+3) tcp_client_ex2.xml + tcp_server_ex2.xml
+   A TCP client/server pair that communicates over the loopback interface,
+   but with inter-connection times generated from exponential distribution
+   with mean 1 and file sizes generated from pareto distribution with
+   alpha=1.2 shape=1500.
+
+4) udp_client.xml + udp_server.xml
+   A simple set of UDP pairs for constant bit-rate, ntp-like and dns-like
+   sources.  Distribution data is totally made up.
+
+Run each file through the config_validator to see how Harpoon parses the files.
+There shouldn't be any surprises.
+
+Refer to the documentation for additional examples and config file details.
+

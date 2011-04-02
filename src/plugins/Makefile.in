@@ -1,0 +1,123 @@
+#
+# $Id: Makefile.in,v 1.10 2006-08-06 23:03:10 jsommers Exp $
+#
+
+#
+# Copyright 2004, 2005  Joel Sommers.  All rights reserved.
+# 
+# This file is part of Harpoon, a flow-level traffic generator.
+# 
+# Harpoon is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# Harpoon is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with Harpoon; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+#
+
+
+srcdir = @srcdir@
+VPATH = @srcdir@
+
+#############################################################################
+
+DUMMY_PLUGIN_OBJ=dummy_plugin.o
+TCP_PLUGIN_OBJ=tcp_plugin.o
+UDPCBR_PLUGIN_OBJ=udpcbr_plugin.o
+UDPBLAST_PLUGIN_OBJ=udpblast_plugin.o
+UDPEXPO_PLUGIN_OBJ=udpexpo_plugin.o
+UDPPERIODIC_PLUGIN_OBJ=udpperiodic_plugin.o
+INFTCP_PLUGIN_OBJ=infinite_tcp.o
+
+COMMON_OBJS=../address_pool.o
+
+BINARIES=dummy_plugin.$(SHLIB_EXT) \
+         tcp_plugin.$(SHLIB_EXT) \
+	 udpcbr_plugin.$(SHLIB_EXT) \
+	 udpblast_plugin.$(SHLIB_EXT) \
+	 udpexpo_plugin.$(SHLIB_EXT) \
+         udpperiodic_plugin.$(SHLIB_EXT) \
+         infinite_tcp.$(SHLIB_EXT)
+
+
+#############################################################################
+
+CXX=@CXX@
+CPPFLAGS=@CPPFLAGS@
+CXXFLAGS=@CXXFLAGS@
+SHLIB_EXT=@SHLIB_EXT@
+SHLIB_FLAG=@SHLIB_FLAG@
+LIBS=@LIBS@
+LDFLAGS=@LDFLAGS@
+TEMPLATEDIR=@TEMPLATEDIR@
+
+all: $(COMMON_OBJS) $(BINARIES)
+
+dummy_plugin.$(SHLIB_EXT): $(DUMMY_PLUGIN_OBJ)
+	$(CXX) $(SHLIB_FLAG) $(CXXFLAGS) $(DUMMY_PLUGIN_OBJ) -o $@
+	
+tcp_plugin.$(SHLIB_EXT): $(TCP_PLUGIN_OBJ)
+	$(CXX) $(SHLIB_FLAG) $(CXXFLAGS) $(TCP_PLUGIN_OBJ) $(COMMON_OBJS) -o $@
+
+udpcbr_plugin.$(SHLIB_EXT): $(UDPCBR_PLUGIN_OBJ) 
+	$(CXX) $(SHLIB_FLAG) $(CXXFLAGS) $(UDPCBR_PLUGIN_OBJ) $(COMMON_OBJS) -o $@
+
+udpblast_plugin.$(SHLIB_EXT): $(UDPBLAST_PLUGIN_OBJ) 
+	$(CXX) $(SHLIB_FLAG) $(CXXFLAGS) $(UDPBLAST_PLUGIN_OBJ) $(COMMON_OBJS) -o $@
+
+udpexpo_plugin.$(SHLIB_EXT): $(UDPEXPO_PLUGIN_OBJ) 
+	$(CXX) $(SHLIB_FLAG) $(CXXFLAGS) $(UDPEXPO_PLUGIN_OBJ) $(COMMON_OBJS) -o $@
+
+udpperiodic_plugin.$(SHLIB_EXT): $(UDPPERIODIC_PLUGIN_OBJ) 
+	$(CXX) $(SHLIB_FLAG) $(CXXFLAGS) $(UDPPERIODIC_PLUGIN_OBJ) $(COMMON_OBJS) -o $@
+
+infinite_tcp.$(SHLIB_EXT): $(INFTCP_PLUGIN_OBJ) 
+	$(CXX) $(SHLIB_FLAG) $(CXXFLAGS) $(INFTCP_PLUGIN_OBJ) $(COMMON_OBJS) -o $@
+
+../address_pool.o:
+	$(CXX) ../address_pool.cc -c -o $@ -I.. $(CPPFLAGS) $(CXXFLAGS)
+
+install:
+	@echo "there is no installation method with harpoon."
+
+clean:
+	rm -rf *~ *.o $(BINARIES) $(TEMPLATEDIR)
+
+distclean: clean
+	rm -f Makefile
+
+.cc.o:
+	$(CXX) -c $(CPPFLAGS) -I.. $(CXXFLAGS) $<
+
+#############################################################################
+# dependencies
+#
+
+dummy_plugin.o: dummy_plugin.cc ../configurator.hh ../address_pool.hh \
+  ../harpoon_plugin.hh ../xmlrpc_util.hh
+
+tcp_plugin.o: tcp_plugin.cc ../configurator.hh ../address_pool.hh \
+  ../harpoon_plugin.hh ../xmlrpc_util.hh
+
+udpcbr_plugin.o: udpcbr_plugin.cc ../configurator.hh ../address_pool.hh \
+  ../harpoon_plugin.hh ../xmlrpc_util.hh
+
+udpblast_plugin.o: udpblast_plugin.cc ../configurator.hh ../address_pool.hh \
+  ../harpoon_plugin.hh ../xmlrpc_util.hh
+
+udpexpo_plugin.o: udpexpo_plugin.cc ../configurator.hh ../address_pool.hh \
+  ../harpoon_plugin.hh ../xmlrpc_util.hh
+
+udpperiodic_plugin.o: udpperiodic_plugin.cc ../configurator.hh ../address_pool.hh \
+  ../harpoon_plugin.hh ../xmlrpc_util.hh
+
+infinite_tcp.o: infinite_tcp.cc ../configurator.hh ../address_pool.hh \
+  ../harpoon_plugin.hh ../xmlrpc_util.hh
+

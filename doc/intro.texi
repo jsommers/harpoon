@@ -1,0 +1,350 @@
+@c
+@c $Id: intro.texi,v 1.13 2005-10-23 15:45:48 jsommers Exp $
+@c
+
+@c
+@c Copyright 2004, 2005  Joel Sommers.  All rights reserved.
+@c 
+@c This file is part of Harpoon, a flow-level traffic generator.
+@c 
+@c Harpoon is free software; you can redistribute it and/or modify
+@c it under the terms of the GNU General Public License as published by
+@c the Free Software Foundation; either version 2 of the License, or
+@c (at your option) any later version.
+@c 
+@c Harpoon is distributed in the hope that it will be useful,
+@c but WITHOUT ANY WARRANTY; without even the implied warranty of
+@c MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+@c GNU General Public License for more details.
+@c 
+@c You should have received a copy of the GNU General Public License
+@c along with Harpoon; if not, write to the Free Software
+@c Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+@c
+
+@node Overview of Harpoon
+@chapter Overview of Harpoon
+
+Harpoon is a flow-level traffic generator.  It uses a set of
+distributional parameters that can be automatically extracted from
+Netflow traces to generate flows that exhibit the same statistical
+qualities present in measured Internet traces, including temporal and
+spatial characteristics.  Harpoon can be used to generate
+representative background traffic for application or protocol testing,
+or for testing network switching hardware.  This manual begins by
+describing the architecture of Harpoon.  Subsequent chapters describe
+how to effectively configure, run, and manage Harpoon.
+
+@cindex getting started
+A suggested roadmap for getting up and running with Harpoon is to read
+this chapter, @ref{Overview of Harpoon}, followed by the next
+chapter, @ref{Basic Configuration}, referring as needed to 
+@ref{Running Harpoon} and @ref{More Examples}
+for command-line parameter, environment variable,
+and specific examples.  Readers wanting to use the self-configuration tools
+or to deploy Harpoon in large testbeds should read the whole manual.
+
+@cindex flow-level architecture
+@node Architecture of Harpoon
+@section Architecture of Harpoon
+
+The design objectives of Harpoon are @math{(1)} to scalably generate
+application-independent network traffic at the IP flow level, and
+@math{(2)} to be easily parameterized to create traffic that is
+statistically identical to traffic measured at a given vantage point
+in the Internet.  
+Figure 1.1 @ref{dflow,,[High-level data flow diagram of Harpoon]} 
+depicts a high-level process 
+flow of these objectives.  We start with the basic definition of an IP flow
+and use this to create a constructive model for network traffic
+generation which we describe below.
+
+@cartouche
+@cindex harpoon high-level architecture
+@cindex flow-level architecture
+@float Figure,dflow
+@center @image{net_arch,10cm,}
+@caption{@strong{High-level data flow diagram of Harpoon.}
+IP flow records are collected at a given vantage point in an
+operational network using standard software like @t{flow-tools}.
+Key aspects of the live flows are extracted during a
+self-configuration step.  These parameters are used to generate
+traffic in a testbed that statistically matches the temporal (diurnal)
+volume characteristics as well as the spatial (source and destination
+IP address frequency) characteristics of the live flows.}
+@end float
+@end cartouche
+
+An IP flow is typically defined as a unidirectional series of IP packets
+of a given protocol traveling between a source and a destination
+IP/port pair within a certain period of time.  The final condition of
+this statement is somewhat ambiguous, so we pragmatically tie our
+definition to Cisco's implementation of Netflow and to the tools 
+we use to gather and analyze network flow data.  Netflow data includes 
+source and destination
+AS/IP/port pairs, packet and byte counts, flow start and end times,
+protocol information, and a bitwise @t{OR} of TCP flags for all
+packets of a flow, in addition to other fields.  This data is exported
+either on timer deadlines or when certain events occur (e.g., a TCP
+FIN or RST, or a cache becomes full), whichever comes first.  While
+this would seem to pragmatically resolve ambiguity in the definition
+of a flow, specific expiration-related timing behaviors can vary
+(see @cite{Cisco Netflow White Paper}@footnote{
+@uref{http://www.cisco.com/@-univercd/@-cc/td/@-doc/@-cisintwk/@-intsolns/@-netflsol/@-nfwhite.htm}.}).
+The result is that flow start time stamps are accurate, while
+flow end time stamps are not.  This inaccuracy does not impact a user
+of Harpoon, but it does make a difference to the self-configuration
+tools.  For more details, see the Harpoon technical paper.
+
+From this operational definition of a flow, Harpoon's architecture
+begins with the notion of unicast file transfers using either TCP or
+UDP.  Harpoon does not address the packet level dynamics of TCP file
+transfers.  Rather, it relies on the version(s) of TCP running on end
+hosts to transfer the requested file.  Modeling UDP traffic is
+complicated by the fact that packet emission behaviors are largely
+application-specific.  At present, Harpoon contains three models of
+UDP packet transfer: a simple parameterized constant packet rate,
+a fixed-interval periodic ping-pong, and an exponentially distributed
+ping-pong.  The first source type is similar to some audio and video
+streams, while the latter two types are intended to mimic the standard
+Network Time Protocol (NTP) and Domain Name Service (DNS),
+respectively.  UDP traffic in today's Internet is likely to be made up
+of a wider variety of application level traffic (including voice, SQL
+worms, etc.) whose behavior is not captured in our current three
+source-type model.  Development of a model with a more diverse set of
+UDP traffic sources is left for future work.
+
+The Harpoon flow model is a two level architecture and is depicted in
+Figure 1.2 
+@ref{arch,,[Harpoon's flow-based two level hierarchical traffic model]}.  We refer to the lower level of the Harpoon 
+model as the @dfn{connection level}.  It is made up of two components that
+have measurable distributional properties.  The first component is the
+@emph{size} of the file transferred, and the second component is the
+time interval between consecutive file transfer requests, the
+@dfn{inter-connection time}.  Harpoon makes requests for files with
+sizes drawn from an empirical distribution @math{P_{FileSize}}.
+Connection initiations are separated by time intervals drawn from an
+empirical distribution @math{P_{InterConnection}}.
+
+The upper level of the Harpoon model is referred to as the
+@dfn{session level}.  Harpoon sessions are divided into either
+TCP or UDP types that conduct data transfers using the respective
+protocol during the time that they are active.  The session level has
+two components: the number of @dfn{active sessions} and the @dfn{IP
+spatial distribution}.  By modulating the number of sessions that are
+active at any point in time, Harpoon can match the byte, packet, and
+flow volumes from the original data and realize the temporal (diurnal)
+traffic volumes that are a common characteristic of the
+Internet@footnote{See, for example, Vern Paxson's thesis
+(@uref{ftp://ftp.ee.lbl.gov/@-papers/vp-thesis/@-dis.ps.gz}).}.  The
+average number of sessions of each type (TCP/UDP) that are active at
+any point in a day is derived from a flow data time series for
+consecutive non-overlapping intervals of length
+@math{IntervalDuration} seconds to create an empirical model for
+@math{P_{ActiveSessions}}.  Scalability is naturally achieved by
+dividing the number of active sessions across any number of hosts
+comprising the testbed.  For each session, Harpoon picks source and
+destination addresses from ranges of available addresses to make a
+series of file transfer requests.  The address selection is made
+preferentially using weights drawn from empirical distributions
+@math{P_{IPRange_{src}}} and @math{P_{IPRange_{dest}}}.  A series of
+file transfer requests then takes place between the source and
+destination for @math{IntervalDuration} seconds.  When Harpoon is
+started, it begins with the average number of sessions in the first
+interval and proceeds through consecutive intervals for the duration
+of the test.
+
+In summary, the Harpoon model is made up of a combination of five
+distributional models for TCP sessions: file size, inter-connection
+time, source and destination IP ranges, number of active sessions.  There
+are three distributional models for UDP sessions: constant bit-rate,
+periodic and exponential ping-pong.  Each of these distributions can
+be specified manually or, in the case of TCP traffic, extracted from 
+packet traces or Netflow data collected at a live router.  These models 
+enable the workload generated by Harpoon to be application independent 
+or to be tuned to a specific application.  The models are combined in 
+a constructive manner to create a series of file transfer requests that 
+results in representative flow-level network traffic.
+The parameters for TCP sessions are summarized below:
+
+@cindex parameters
+@cindex distributions
+@table @asis
+@item @strong{Parameter}
+@strong{Description}
+
+@cindex file size distribution
+@item @math{P_{FileSize}}
+Empirical distribution of file sizes transferred.
+
+@cindex inter-connection time distribution
+@item @math{P_{InterConnection}}
+Empirical distribution of time between consecutive TCP connections initiated 
+by an IP source-destination pair. 
+
+@cindex address range distributions
+@item @math{P_{IPRange_{src}}} and @math{P_{IPRange_{dest}}}
+Ranges of IP addresses with preferential weights set to match the 
+empirical frequency distributions from the original data.
+
+@cindex active sessions distribution
+@item @math{P_{ActiveSessions}}
+The distribution of the average number of sessions (IP source-destination 
+pairs) active during consecutive intervals of the measured data.  By 
+modulating this distribution, Harpoon can match the temporal byte, 
+packet and flow volumes from the original data. 
+
+@cindex interval duration
+@item IntervalDuration
+Time granularity over which Harpoon matches average byte, packet and 
+flow volumes
+@end table
+
+@cartouche
+@cindex distributional parameters
+@cindex parameters
+@anchor{distributional parameters}
+@float Figure,arch
+@center @image{harpoon_terms,10cm,}
+@caption{@strong{Harpoon's flow-based two level hierarchical traffic
+model.}  Sessions are comprised of a series of connections separated
+by durations drawn from the inter-connection time distribution.
+Source and destination IP address selection (A and B in the figure) is
+weighted to match the frequency distribution of the original flow
+data.  The number of active sessions determines the overall average
+load offered by Harpoon.  A heavy-tailed empirical file size
+distribution and an ON/OFF transfer model generate self-similar
+packet-level behavior.}
+@end float
+@end cartouche
+
+@cindex software components
+@cindex harpoon tools
+@node Harpoon Software Components
+@section Harpoon Software Components
+
+There are five programs and scripts included with Harpoon:
+
+@itemize
+@item @command{harpoon}, the main executable, along with 
+@dfn{traffic generation plugins} for implementing Harpoon
+user-level behavior using OS-supplied protocol implementations
+(e.g. TCP) or another kind of packet emission processes,
+
+@item @command{config_validator}, a utility for validating the
+structure of a config file.
+
+@item @command{harpoon_flowproc}, a utility for pre-processing flow
+records (raw Netflow version 5 or @command{flow-tools} format) for
+self-configuration, and
+
+@item @command{harpoon_conf.py}, a utility for generating
+configuration files for @command{harpoon} (the self-configurator).
+
+@item @command{harpoon_reconf.py}, a utility for tuning existing configuration
+files to produce desired traffic volumes.
+@end itemize
+
+@command{harpoon}, @command{config_validator}, and @command{harpoon_flowproc}
+are C++ programs.  Requirements for building Harpoon include a C++ compiler 
+with a functional standard template library (recent versions of GCC easily 
+satisfy this requirement), a POSIX threads implementation, and the 
+eXpat XML parsing library@footnote{@uref{http://expat.sourceforge.net}}.
+The @t{flow-tools}@footnote{@uref{http://www.splintered.net/sw/flow-tools}} 
+library is optionally used by @command{harpoon_flowproc}.  If no installation 
+of @t{flow-tools} is found, the @command{harpoon_flowproc} tool will still
+be built, but will only be able to process wire format Netflow 5 records.
+
+The scripts @command{harpoon_conf.py} and @command{harpoon_reconf.py} require
+a Python interpreter, version 2.3 or 
+greater@footnote{@uref{http://www.python.org}}.  If a suitable Python
+interpreter is not found, the other tools will be built, but a warning
+will appear when configuring the software.
+
+@cindex traffic generator plugins
+@cindex plugins
+The traffic generation plugins exist as dynamically loadable modules
+(aka shared libraries, dynamically linked libraries, bundles).  For
+example, all logic specific to generating TCP flow traffic is confined
+to the @command{TCPPlugin} module and all logic specific for UDP
+constant bit-rate traffic generation is confined to the
+@command{UDPcbrPlugin} module.  (@ref{Creating New Traffic Generation
+Modules} describes how to create modules to generate any type of
+desired traffic.)  You do not have to know how these modules work to
+generate basic TCP or UDP-CBR traffic, but you should understand the
+basic roles of the distributions used by different Harpoon plugins
+in order to feed properly formatted configuration files to Harpoon.
+
+Subsequent chapters describe how to use these tools to produce desired
+traffic.  For basic configuration using sample configuration files supplied
+with the Harpoon software distribution, see @ref{Basic Configuration}.  For
+more extensive discussion of configuring Harpoon using the self-configuration
+tools, see @ref{Advanced Configuration}.  Command-line options, applicable
+environment variables, and signal handling for the above tools are covered
+in @ref{Running Harpoon}.  Finally, more examples on configuring, using,
+and managing Harpoon are given in @ref{More Examples}.  Note that this manual
+assumes a working knowledge of UNIX-ish systems and shell commands.  If
+you need help on those basics, look elsewhere.
+
+@cindex building the software
+@cindex compiling
+@node Building the Harpoon Software
+@subsection Building the Harpoon Software
+
+Building Harpoon consists of the following steps:
+
+@enumerate
+@item Unpack the distribution.  Using GNU @command{tar}, 
+``@command{tar xzvf harpoon_distribution.tgz}'' will do the trick, substituting
+the particular file name for ``@command{harpoon_distribution.tgz}''.
+
+@item Run @command{./configure} in the top-level directory of the unpacked 
+software.  This step will build appropriate make files for your system.  
+Optionally, you may use the @t{--prefix} flag to specify where the software
+is to be installed.  The installation location defaults to 
+@t{/usr/local/harpoon}.
+
+@item Run @command{make}.  By default, the main components of Harpoon, all 
+plugins, and some (presently undocumented) miscellaneous tools are built.  
+If available, use GNU make, since some make programs do not properly handle 
+some of the constructs in Harpoon's makefiles.
+
+@item (optional) @command{make selfconf}.  Build the self configuration tool
+@command{harpoon_flowproc}.
+
+@item (optional) @command{make doc}.  You'll need the GNU texinfo tools and/or 
+doxygen for this to work.
+
+@item (optional) @command{make install}.  Move the appropriate components
+to the installation target directory.  By default, the install directory 
+is @t{/usr/local/harpoon}.
+@end enumerate
+
+Harpoon is known to build and run on FreeBSD 5.1-5.4, Linux 2.2-2.6,
+MacOS X 10.2-10.4, and Solaris 8-10.  Harpoon does not build on Windows,
+though there is an intent to eventually make that possible.
+
+@cindex environment variables
+If @command{configure} does not find certain required libraries, you might
+try the following syntax:
+@example
+$ CPPFLAGS=-I/path-to-include-files LDFLAGS=-L/path-to-libs \
+   ./configure
+@end example
+This syntax generally works to force @command{configure} to look in the
+right directories.
+
+By default, harpoon is built with optimization level @option{-O2} and
+with debugging symbols @option{-g}.  An easy way to change this is to use the
+above syntax recipe:
+@example
+$ CXXFLAGS="-g" ./configure
+@end example
+The above example will build Harpoon with debugging symbols but no 
+optimization.  Building Harpoon without debugging symbols and a desired
+level of optimization can be accomplished in a similar way.
+
+Finally, you'll very likely have to set @t{LD_LIBRARY_PATH} (Linux, FreeBSD and 
+Solaris) or @t{DYLD_LIBRARY_PATH} (MacOS X) to the directory where plugin 
+objects are installed.  @xref{Environment Variables} for further information.
+

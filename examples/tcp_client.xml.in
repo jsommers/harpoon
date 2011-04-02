@@ -1,0 +1,18 @@
+<harpoon_plugins>
+
+  <plugin name="TcpClient" objfile="tcp_plugin.@SHLIB_EXT@" 
+          maxthreads="1" personality="client">
+
+      <interconnection_times> 0.1 0.2 0.3 </interconnection_times>
+      <active_sessions> 1 </active_sessions>
+
+      <address_pool name="client_source_pool"> 
+            <address ipv4="127.0.0.1/32" port="0" />
+      </address_pool>
+
+      <address_pool name="client_destination_pool"> 
+            <address ipv4="127.0.0.1/32" port="10000" />
+      </address_pool>
+  </plugin>
+
+</harpoon_plugins>

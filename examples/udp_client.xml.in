@@ -1,0 +1,64 @@
+<harpoon_plugins>
+
+  <!-- constant bit-rate UDP sources -->
+  <plugin name="UDPCBRClient" objfile="udpcbr_plugin.@SHLIB_EXT@" 
+          maxthreads="1" personality="client">
+
+      <active_sessions> 1 </active_sessions>
+      <interconnection_times> 
+         0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
+      </interconnection_times>
+      <datagram_size> 1000 </datagram_size>
+      <bitrate> 10000 </bitrate> <!-- bits per second -->
+
+      <address_pool name="client_destination_pool"> 
+            <address ipv4="127.0.0.1/32" port="10001" />
+      </address_pool>
+
+      <address_pool name="client_source_pool"> 
+            <address ipv4="127.0.0.1/32" port="0" />
+      </address_pool>
+  </plugin>
+
+
+  <!-- DNS-like UDP sources -->
+  <plugin name="UDPExpoClient" objfile="udpexpo_plugin.@SHLIB_EXT@" 
+          maxthreads="1" personality="client">
+
+      <active_sessions> 1 </active_sessions>
+      <virtual_users type="user_defined"> 10 </virtual_users>>
+      <expo_means type="user_defined"> 60000 30000 15000 </expo_means>
+
+      <file_sizes> 37 69 44 75 43 73 33 69 28 229 28 44 32 188 32 72 </file_sizes>
+
+      <address_pool name="client_destination_pool"> 
+            <address ipv4="127.0.0.1/32" port="10053" />
+      </address_pool>
+
+      <address_pool name="client_source_pool"> 
+            <address ipv4="127.0.0.1/32" port="0" />
+      </address_pool>
+  </plugin>
+
+
+  <!-- NTP-like UDP sources -->
+  <plugin name="UDPPeriodicClient" objfile="udpperiodic_plugin.@SHLIB_EXT@" 
+          maxthreads="1" personality="client">
+
+      <active_sessions> 1 </active_sessions>
+      <virtual_users type="user_defined"> 10 </virtual_users>>
+      <uniform_period type="user_defined"> 30000 </uniform_period>>
+
+      <file_sizes> 60 60 60 60 60 60 68 68 68 576 </file_sizes>
+
+      <address_pool name="client_source_pool">
+            <address ipv4="127.0.0.1/32" port="0" />
+      </address_pool>
+
+      <address_pool name="client_destination_pool"> 
+            <address ipv4="127.0.0.1/32" port="10123" />
+      </address_pool>
+  </plugin>
+
+</harpoon_plugins>
+

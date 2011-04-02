@@ -1,0 +1,48 @@
+<harpoon_plugins>
+
+  <!-- constant bit-rate UDP sources -->
+  <plugin name="UDPCBRserver" objfile="udpcbr_plugin.@SHLIB_EXT@" 
+          maxthreads="1" personality="server">
+
+      <file_sizes> 
+         10000 20000 30000 40000 1000000
+      </file_sizes>
+
+      <active_sessions> 1 </active_sessions>
+
+      <address_pool name="server_pool"> 
+            <address ipv4="127.0.0.1/32" port="10001" />
+      </address_pool>
+  </plugin>
+
+
+  <!-- DNS-like UDP sources -->
+  <plugin name="UDPExposerver" objfile="udpexpo_plugin.@SHLIB_EXT@" 
+          maxthreads="1" personality="server">
+
+      <file_sizes> 37 69 44 75 43 73 33 69 28 229 28 44 32 188 32 72 </file_sizes>
+      <active_sessions> 1 </active_sessions>
+
+      <address_pool name="server_pool"> 
+            <address ipv4="127.0.0.1/32" port="10053" />
+      </address_pool>
+  </plugin>
+
+
+  <!-- NTP-like UDP sources -->
+  <plugin name="UDPPeriodicserver" objfile="udpperiodic_plugin.@SHLIB_EXT@" 
+          maxthreads="1" personality="server">
+
+      <file_sizes> 
+         37 69 44 75 43 73 33 69 28 229 28 44 32 188 32 72 
+      </file_sizes>
+
+      <active_sessions> 1 </active_sessions>
+
+      <address_pool name="server_pool"> 
+            <address ipv4="127.0.0.1/32" port="10123" />
+      </address_pool>
+  </plugin>
+
+</harpoon_plugins>
+

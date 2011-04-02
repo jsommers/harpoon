@@ -1,0 +1,13 @@
+<harpoon_plugins>
+
+  <plugin name="InfTcpServer" objfile="infinite_tcp.@SHLIB_EXT@" 
+          maxthreads="1" personality="server">
+      <active_sessions> 1 </active_sessions>
+      <rcvbuf> 65536 </rcvbuf>
+
+      <address_pool name="server_pool">
+          <address ipv4="127.0.0.1/32" port="10000" />
+      </address_pool>
+  </plugin>
+
+</harpoon_plugins>

@@ -1,0 +1,453 @@
+@c
+@c $Id: basic.texi,v 1.13 2005-08-05 19:36:35 jsommers Exp $
+@c
+
+@c
+@c Copyright 2004, 2005  Joel Sommers.  All rights reserved.
+@c 
+@c This file is part of Harpoon, a flow-level traffic generator.
+@c 
+@c Harpoon is free software; you can redistribute it and/or modify
+@c it under the terms of the GNU General Public License as published by
+@c the Free Software Foundation; either version 2 of the License, or
+@c (at your option) any later version.
+@c 
+@c Harpoon is distributed in the hope that it will be useful,
+@c but WITHOUT ANY WARRANTY; without even the implied warranty of
+@c MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+@c GNU General Public License for more details.
+@c 
+@c You should have received a copy of the GNU General Public License
+@c along with Harpoon; if not, write to the Free Software
+@c Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+@c
+
+@node Basic Configuration
+@chapter Basic Configuration
+
+This chapter discusses simple configurations of Harpoon using the supplied
+example config files (in the @file{examples} subdirectory of the software
+distribution).  Simple changes to the config files to accomodate local
+addressing and traffic volume requirements are also discussed.  The next
+chapter discusses more complicated configurations of Harpoon using your 
+own flow records.  It is assumed here that you have successfully built Harpoon 
+(@xref{Building the Harpoon Software}).
+
+Example configurations are found in the @file{examples} subdirectory.
+There are two TCP traffic configuration examples provided:
+
+@cindex example configurations
+@table @asis
+@item @file{tcp_client.xml} and @file{tcp_server.xml}
+A very simple setup for illustrative purposes only.
+
+@item @file{tcp_client_ex2.xml} and @file{tcp_server_ex2.xml}
+A TCP client/server pair with inter-connection times generated from 
+exponential distribution with mean 1 second and file sizes generated from 
+Pareto distribution with alpha=1.2 shape=1500 (bytes).
+@end table
+
+
+@cindex validating configuration files
+@cindex config file validation
+@node Validating a Configuration
+@section Validating a Configuration
+
+The first step toward running @command{harpoon} should be to make sure
+configuration files you intend to use are properly formed.  A tool,
+@command{config_validator} exists for this purpose.  The tool takes only
+one argument, the configuration file.  Shown below is output of 
+@command{config_validator} run on @file{tcp_client_ex2.xml} and 
+@file{tcp_server_ex2.xml}.
+
+@smallexample
+$ ./config_validator ../examples/tcp_client_ex2.xml
+loading ../examples/tcp_client_ex2.xml
+bad address - no prefix len?
+Checking load of TcpClient
+name: TcpClient
+objfile: tcp_plugin.dylib
+maxthreads: 10
+personality: client
+client source pool:
+address list:
+        0.0.0.0 - 0.0.0.0 :0 (1)
+client destination pool: 
+address list:
+        127.0.0.1 - 127.0.0.1 :10000 (1)
+
+dumping distributions (first 10): 
+active_sessions: 10 
+interconnection_times: 3.99391 0.293601 2.12709 1.21451 0.409159 0.1121 
+0.580837 0.101379 0.724933 0.224031 
+@end smallexample
+
+@cindex configuration file structure
+There are a number of items to note here:
+@itemize
+@item First, each plugin configuration has a name.  The name of this plugin
+is TcpClient.  The name must be unique for all plugins loaded and running
+in the same Harpoon process.  (Note that you can have multiple configurations
+of TCP plugins running as both clients and servers within a single process,
+but they must each have different names.)
+
+@item The shared object file loaded for this plugin is @file{tcp_plugin.dylib}.
+The operating system loader finds this file by searching the directories
+specified by @code{LD_LIBRARY_PATH} environment variable.  
+@xref{Environment Variables} for more information.
+
+@item In Harpoon, sessions are mapped in a 1-1 fashion onto threads.  The
+@code{maxthreads} plugin attribute specifies the maximum number of operating
+system threads to start in the plugin.  To generate a specific level of 
+traffic, a certain number of threads/sessions are made active over successive
+intervals of time.  This number of active sessions is specified by the
+@code{active_sessions} distribution.  Note that a specified number of active
+sessions can be greater than the value given for @code{maxthreads}.  In this
+case, the @code{maxthreads} parameter acts as a limit; the actual number of
+active sessions is @math{min(@code{maxthreads},ActiveSessions_i)}, 
+where @math{ActiveSessions_i} is the number of active sessions for 
+interval @math{i}.
+@xref{distributional parameters} to review the role of sessions in Harpoon.
+
+@item @code{personality} specifies whether this plugin is acting in a
+server-side or client-side role. 
+
+@item @code{client source pool} and @code{client destination pool} denote
+address pools used by this plugin.  Since this is a client-side plugin,
+the @code{client source pool} is used to bind the local-side of TCP connections
+to a specific local address.  In this example, the local address is 
+@code{0.0.0.0}, meaning that the operating system will fill in a default 
+local address.  The @code{client destination pool} addresses specify remote
+addresses and ports where Harpoon TCP servers are listening.  
+
+@item Finally, 10 random values from the distributions used by the particular
+endpoint (client or server) are printed.  For TCP clients, there are
+two relevant distributions: @code{active_sessions} and 
+@code{interconnection_times}.
+For TCP servers (example shown below), there are two relevant distributions:
+@t{active_sessions} and @t{file_sizes}.
+@end itemize
+
+Validation of the server-side configuration file is now shown below:
+
+@smallexample
+$ ./config_validator ../examples/tcp_server_ex2.xml
+loading ../examples/tcp_server_ex2.xml
+bad address - no prefix len?
+Checking load of TcpServer
+name: TcpServer
+objfile: tcp_plugin.dylib
+maxthreads: 37
+personality: server
+server address pool:
+address list:
+        0.0.0.0 - 0.0.0.0 :10000 (1)
+
+dumping distributions (first 10): 
+active_sessions: 37 
+file_sizes: 18643900 15150 807481 157679 23465 4930 39188 4418 56341 10863 
+@end smallexample
+
+Now that the client-side configuration file has been validated and explained,
+there is little new to describe.  Note that the name of the plugin has
+changed to @code{TcpServer} and the personality is @code{server}, but the 
+plugin shared object file is still @code{tcp_plugin.dylib}.  For servers,
+the @code{maxthreads} and @code{active_sessions} parameters specify the 
+number of active threads waiting to service file requests.  These numbers
+can be set to the same single value in most cases.  (The problem of how many
+threads/sessions to keep active is similar to the problem of configuring
+a web server.  Unlike modern web servers, Harpoon does not allocate server 
+threads in a dynamic way, so this number must be statically set in the 
+configuration files to a reasonable value.)  Finally, note that the server
+address is set to a default address (@code{0.0.0.0}) and the port is
+set to 10000.
+
+@cindex modifying addresses
+@cindex addressing
+@node Modifying Configuration File Addresses
+@section Modifying Configuration File Addresses
+
+For the client-side configuration file shown above, the destination address
+pool is set to a single address of @code{127.0.0.1} -- the loopback 
+interface.  This isn't particularly helpful, since we would like to generate
+traffic over a network, not just through some operating system layers.
+This address pool is easily changed.
+
+Using your favorite text editor, open the file @file{tcp_client_ex2.xml}.
+Toward the end of the file the following lines are found:
+
+@smallexample
+       ...
+       <address_pool name="client_source_pool">
+            <address ipv4="0.0.0.0" port="0" />
+       </address_pool>
+
+       <address_pool name="client_destination_pool">
+            <address ipv4="127.0.0.1/32" port="10000" />
+       </address_pool>
+       ...
+@end smallexample
+
+To change the server address (@code{client_destination_pool}), change
+the address block @code{127.0.0.1/32} to be the desired address.  For
+host prefixes (/32 masks) the mask is optional; specifying @code{127.0.0.1}
+has the same effect as specifying @code{127.0.0.1/32}.  
+(@command{config_validator} warns about this lack of prefix, however.  See
+the above examples for the warning: ``bad address - no prefix len?''.)
+
+If there are two servers running on separate machines and without contiguous
+addresses, simply add another @code{<address ... />} line with the second
+address.
+
+Note that for servers, the address pool definition follows the same structure, 
+but there is a current limitation in that only one address is used for
+binding.  That is, specifying two addresses for a server to listen on will
+not have the desired effect; only one address will be used.  For now, using
+the default address specifier, @code{0.0.0.0}, is the best option.
+
+@cindex running harpoon, example
+@node Starting Harpoon
+@section Starting Harpoon
+
+We now have two configuration files with addresses set appropriately.  The
+examples below show how to start harpoon with these configuration files. 
+We assume here that the environment variable @code{LD_LIBRARY_PATH} has 
+been set properly (@pxref{Environment Variables}).  Alternatively, a
+shell script @code{run_harpoon.sh} is installed when @command{make install}
+is run that sets the environment variable to the correct directory and
+then executes @command{harpoon}.  The examples below use this script, which
+has been installed in the default location of @file{/usr/local/harpoon}.
+
+On the server machine:
+@smallexample
+$ /usr/local/harpoon/run_harpoon.sh -v10 -w300 -c \
+  -f examples/tcp_server.xml
+...
+10:02:16 sev(07) stopping plugin TcpServer
+10:02:16 sev(00) TcpServer: plugin stopped - threads killed and reaped
+10:02:16 sev(07) starting plugin TcpServer
+10:02:16 sev(02) TcpServer: no plugin state existed on start - created
+10:02:16 sev(01) TcpServer: started plugin with 1 threads.
+10:02:16 sev(01) <stopping plugins: TcpServer:ok ><starting plugins: \ 
+  TcpServer:ok >
+10:02:16 sev(09) harpoon started. verbosity<10>warp_factor<60> \ 
+  autoincr?<1>continuousrun?<1>
+10:02:16 sev(05) 00:00 - emulation time tick
+...
+@end smallexample
+
+And on the client machine:
+@smallexample
+$/usr/local/harpoon/run_harpoon.sh -v10 -w300 -f examples/tcp_client.xml 
+...
+10:02:40 sev(07) stopping plugin TcpClient
+10:02:40 sev(00) TcpClient: plugin stopped - threads killed and reaped
+10:02:40 sev(07) starting plugin TcpClient
+10:02:40 sev(02) TcpClient: no plugin state existed on start - created
+10:02:40 sev(01) TcpClient: started plugin with 1 threads.
+10:02:40 sev(01) <stopping plugins: TcpClient:ok ><starting plugins: \ 
+  TcpClient:ok >
+10:02:40 sev(09) harpoon started. verbosity<10>warp_factor<300>\ 
+  autoincr?<1>continuousrun?<0>
+10:02:40 sev(05) 00:00 - emulation time tick
+...
+@end smallexample
+
+@cindex harpoon command-line options
+The command-line options used above require explanation:
+@table @option
+@item -v10 
+Turn on verbose messages.  You should use this setting (level 10) of
+verbosity, especially when first getting started with Harpoon.
+
+@item -w300
+Set interval duration length to 300 seconds (also referred to as 
+``warp factor'').  Given a specification of @code{<active_sessions>} in
+a configuration file, Harpoon will iterate through this list,
+setting the number of active sessions to each value for durations of 
+300 seconds.  If the original intervals were one hour in length (@emph{i.e.},
+the average number of sessions was calculated over successive intervals
+of one hour) and the @option{-w} flag is set to 600 seconds, a 24 hour 
+period could be emulated in 14,400 seconds (four hours).  It should
+be clear from this explanation where the term ``warp factor'' comes from.
+
+@item -f [examples/tcp_client.xml, examples/tcp_server.xml]
+Specify the configuration file to load.  Multiple @option{-f} flags
+may be used to tell Harpoon to load more than one configuration file.
+
+@item -c
+While the first three options were used for each side (client and server)
+of Harpoon, the @option{-c} parameter is only used for the server-side.
+This option tells Harpoon to continuously cycle over its list of
+active sessions, specified in @code{<active_sessions>}.  Normally, Harpoon
+will iterate only @strong{once} through this list, then cease activity.
+For experiments of fixed duration, this is often the desired behavior.
+However, for servers this behavior is generally to be avoided.  The reason
+is that servers (at least for the plugins provided with the Harpoon software
+distribution) do not produce traffic without some request or provocation
+from clients.  It is therefore much easier to simply leave servers running,
+cycling over a list of active sessions (typically set to a single value
+anyway), much like a continuously running web server.
+@end table
+
+More information on command-line parameters is given in 
+@ref{harpoon command-line parameters}.
+
+Now that the client and server are started, we can get information from
+these processes via XML-RPC.  Using the @code{stats.py} script in the
+@file{cli} subdirectory (and a Python interpreter of version 2.2 or greater):
+
+@cindex stats.py tool
+@smallexample
+$ python ./stats.py -u http://servermachine:8180/ \ 
+  -u http://clientmachine:8180/
+stats for  <ServerProxy for servermachine:8180/>
+server-wide information:
+        emulation_interval   1
+----
+plugin-specific information:
+
+        TcpServer is running - up for  81  seconds
+                target threads = 1  active threads = 1
+                num_transfer = 36
+                send_bandwidth_total_bps = 35555.6
+                send_bandwidth_recent_bps = 35555.6
+                bytes_sent_total = 360000.0
+                bytes_sent_recent = 360000.0
+                personality = server
+stats for  <ServerProxy for clientmachine:8180/>
+
+server-wide information:
+        emulation_interval   0
+----
+plugin-specific information:
+
+        TcpClient is running - up for  21  seconds
+                target threads = 1  active threads = 1
+                num_requests = 10
+                personality = client
+@end smallexample
+
+Note that the statistics gathered using the @command{stats.py} tool are
+approximate and only reflect an application point of view.
+You should not use them in any ``real'' measurements (like for
+paper submissions!).  They are there to simply help with diagnosing and 
+monitoring currently running 
+Harpoon processes.  Other XML-RPC tools are provided in the @file{cli} 
+subdirectory.  More information on them is provided in @ref{Managing Harpoon}.
+
+
+@cindex harpoon_reconf.py tool
+@cindex traffic volume, tuning
+@node Modifying a Configuration to Produce Different Traffic Volumes
+@section Modifying a Configuration to Produce Different Traffic Volumes
+
+A common requirement is for harpoon to generate a specific average load.  
+A tool, @command{harpoon_reconf.py} is provided to assist in determining the
+appropriate number of sessions to configure at a client to produce the
+desired level of traffic.
+
+If we wish to set the number of sessions so that the traffic rate (bandwidth) 
+produced by Harpoon is 5 Mbps averaged over a 10 minute interval, we can use 
+the @command{harpoon_reconf.py} tool as follows 
+(from the top-level Harpoon source directory):
+
+@smallexample
+$ python selfconf/harpoon_reconf.py -d -c examples/tcp_client_ex2.xml 
+  -s examples/tcp_server_ex2.xml -i 600 -r 5000000
+...
+targetbytes 375000000.0 simbytes 378522468 median 4 mean 3 \ 
+  stdev 0.771722460186 max 5 flows 4085
+number of sessions should be 3 to achieve volume of  375000000 bytes \ 
+  (5000000.0 bits/sec)
+$
+@end smallexample
+
+The tool reports that the number of active sessions should be set to 3 (the
+mean).
+
+The options used for @command{harpoon_reconf.py} are as follows:
+@table @option
+@item -d
+Turn on verbose (debugging) information.
+
+@item -c examples/tcp_client_ex2.xml
+Specify the client-side configuration file.  This is a required parameter.
+
+@item -s examples/tcp_server_ex2.xml
+Specify the server-side configuration file.  This is a required parameter.
+
+@item -i 600
+Specify the interval duration.  The value used for this parameter should be
+the same as the @option{-w} parameter passed to @command{harpoon}.  
+See @ref{harpoon command-line parameters} and @ref{Starting Harpoon} for more
+information.  This is a required parameter.
+
+@item -r 5000000
+Specify the target traffic rate, in bits per second.  Alternatively, you
+may use the @option{-b} parameter to specify the total volume (in bytes)
+that should be generated over the specified interval duration (given by
+@option{-i}).  One of @option{-r} or @option{-b} is required.
+@end table
+
+Note that the @option{-d} flag was used, producing verbose output.  The
+target byte volume to produce over the requested interval of 600 seconds
+is 375000000 (@math{5000000 / 8 \times 600 = 375000000}).  
+The mean and standard deviation of the sessions needed to produce 5 Mbps
+are 3 and 0.772, respectively.  The output value @code{simbytes} is the average
+amount of traffic (in bytes) estimated to be produced for three sessions.
+This value will always be greater than the target (but generally not
+too much), since the self configuration tools aim to produce at least as much 
+traffic as was originally sent.
+
+@cindex stats.py tool
+@cindex XML-RPC management
+@anchor{stats.py tool example}
+After restarting the server and client, we use @command{stats.py} one 
+minute later to check the server status and see that Harpoon is producing 
+roughly 5Mbps.  This tool takes only one option, @option{-u}, to specify
+the URL of the harpoon XML-RPC listener.  By default, port 8180 is used.
+
+@smallexample
+$ python cli/stats.py -u http://servermachine:8180/
+...
+        TcpServer is running - up for  60  seconds
+                target threads = 3  active threads = 3
+                num_transfer = 397
+                send_bandwidth_total_bps = 4334040.0
+                send_bandwidth_recent_bps = 6360550.0
+                bytes_sent_total = 32505300.0
+                bytes_sent_recent = 13516200.0
+                personality = server
+...
+@end smallexample
+
+Near the end of the test, we run @command{stats.py} again to check progress:
+
+@smallexample
+$ python cli/stats.py -u http://servermachine:8180/
+...
+        TcpServer is running - up for  557  seconds
+                target threads = 3  active threads = 3
+                num_transfer = 4217
+                send_bandwidth_total_bps = 6247000.0
+                send_bandwidth_recent_bps = 5237350.0
+                bytes_sent_total = 434947000.0
+                bytes_sent_recent = 75286800.0
+                personality = server
+...
+@end smallexample
+
+We see that Harpoon is making a pretty good match to 5 Mbps and is quite
+close to the average @code{match_rate} calculated above.
+
+Recall that the matching is done based on some interval of time 
+(@pxref{arch,,[Harpoon's flow-based two level hierarchical traffic model]}).
+Note also that this matching is approximate, and depends on many factors.  The
+nature of the underlying distributions (file sizes and interconnection times)
+have a great impact on the goodness of the match, but selection of the 
+interval duration also has a significant effect.  Generally, longer intervals
+(@emph{i.e.} five or ten minutes) are best.  Very often the match between 
+what you expect and what you get is quite good, but it can be ``less good''
+if you pick a short interval and have distributions with extreme variability.
+

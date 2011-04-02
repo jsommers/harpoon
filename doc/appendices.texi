@@ -1,0 +1,667 @@
+@c
+@c $Id: appendices.texi,v 1.12 2005-08-05 19:36:35 jsommers Exp $
+@c
+
+@c
+@c Copyright 2004, 2005  Joel Sommers.  All rights reserved.
+@c 
+@c This file is part of Harpoon, a flow-level traffic generator.
+@c 
+@c Harpoon is free software; you can redistribute it and/or modify
+@c it under the terms of the GNU General Public License as published by
+@c the Free Software Foundation; either version 2 of the License, or
+@c (at your option) any later version.
+@c 
+@c Harpoon is distributed in the hope that it will be useful,
+@c but WITHOUT ANY WARRANTY; without even the implied warranty of
+@c MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+@c GNU General Public License for more details.
+@c 
+@c You should have received a copy of the GNU General Public License
+@c along with Harpoon; if not, write to the Free Software
+@c Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+@c
+
+@node More Examples
+@appendix More Examples
+
+@cindex configuration file example
+@cindex XML configuration file structure
+@cindex configuration file structure
+@appendixsec XML Configuration Files
+
+The following examples show portions of the configurations
+@file{tcp_client_ex2.xml} and @file{tcp_server_ex2.xml} provided in 
+the @file{examples} subdirectory of the Harpoon software distribution.
+Not all distribution data is printed (noted by the ellipses in the
+examples).
+
+First, the client configuration:
+@smallexample
+<harpoon_plugins>
+
+  <plugin name="TcpClient" objfile="tcp_plugin.dylib" 
+          maxthreads="10" personality="client">
+
+       <active_sessions> 10 </active_sessions>
+
+       <interconnection_times>
+       ...
+       3.993905 0.293601 2.127093 0.174206 0.391431 
+       2.579116 0.273442 0.358623 0.173357 1.454077 
+       ...
+       </interconnection_times>
+
+       <address_pool name="client_source_pool">
+            <address ipv4="10.54.40.2/32" port="0" />
+       </address_pool>
+
+       <address_pool name="client_destination_pool">
+            <address ipv4="10.54.40.1/32" port="10000" />
+       </address_pool>
+  </plugin>
+</harpoon_plugins>
+@end smallexample
+
+
+
+Now, for the server configuration:
+
+
+@smallexample
+<harpoon_plugins>
+  <plugin name="TcpServer" objfile="tcp_plugin.dylib" 
+          maxthreads="37" personality="server">
+
+      <file_sizes>
+      ...
+      1034 9710 559390 52641 2122 2643 16167 22667 23660 20271790 14009 
+      ...
+      </file_sizes>
+
+      <active_sessions> 37 </active_sessions>
+
+      <address_pool name="server_pool">
+          <address ipv4="0.0.0.0" port="10000" />
+      </address_pool>
+
+  </plugin>
+</harpoon_plugins>
+@end smallexample
+
+If you wish to use these files to produce a specific traffic volume
+(bit rate), see 
+@ref{advanced harpoon_reconf.py,,[tuning traffic volume with harpoon_reconf.py]}, 
+@ref{running harpoon_reconf.py,,[harpoon_reconf.py command-line parameters ]}, 
+or @ref{Modifying a Configuration to Produce Different Traffic Volumes,,[basic use of harpoon_reconf.py]}.
+You may also wish to change the addresses to match your environment.  See
+@ref{Modifying Configuration File Addresses,,[modifying configuration file addresses]} 
+or @ref{Configuring Addresses,,[address configuration]} for that information.
+
+
+@cindex config file validation
+@cindex configuration file structure
+@node Validation of Configuration Files
+@appendixsec Validation of Configuration Files
+
+We now validate the above configuration files and show the output of
+@command{config_validator} for each.  (Note that there are slight local
+modifications to these config files so the output will not exactly match
+running @command{config_validator} on these same files in the Harpoon
+software distribution.)
+
+@smallexample
+$ config_validator tcp_client_ex2.xml
+loading ../examples/tcp_client_ex2.xml
+bad address - no prefix len?
+Checking load of TcpClient
+name: TcpClient
+objfile: tcp_plugin.dylib
+maxthreads: 50
+personality: client
+client source pool:
+address list:
+        10.54.0.22 - 10.54.0.22 :0 (1)
+client destination pool: 
+address list:
+        10.54.46.0 - 10.54.46.255 :10000 (256)
+
+dumping distributions (first 10): 
+active_sessions: 12 27 40 41 36 48 50 50 49 25 
+interconnection_times: 3.99391 0.293601 2.12709 1.21451 0.409159 0.1121 
+    0.580837 0.101379 0.724933 0.224031 
+$
+@end smallexample
+
+
+@smallexample
+$ config_validator tcp_server_ex2.xml
+loading ../examples/tcp_server_ex2.xml
+bad address - no prefix len?
+Checking load of TcpServer
+name: TcpServer
+objfile: tcp_plugin.dylib
+maxthreads: 37
+personality: server
+server address pool:
+address list:
+        0.0.0.0 - 0.0.0.0 :10000 (1)
+
+dumping distributions (first 10): 
+active_sessions: 37 
+file_sizes: 18643900 15150 807481 157679 23465 4930 39188 4418 56341 10863
+@end smallexample
+
+
+@cindex running harpoon, example
+@cindex configuration file example
+@appendixsec Example Using Two Hosts, Unidirectional Traffic
+
+For the above client and server configuration files, assuming that
+the client source and destination addresses are set up correctly, we're
+ready to start up Harpoon and generate traffic.
+
+For the server, you should see something like this:
+@smallexample
+$ export LD_LIBRARY_PATH=\ 
+      $LD_LIBRARY_PATH:/home/jsommers/harpoon/src/plugins
+$ ./harpoon -f ../examples/tcp_server_ex2.xml -v10 -w300 -c
+loading ../examples/tcp_server_ex2.xml... bad address - no prefix len?
+ finished.
+Checking load of TcpServer
+name: TcpServer
+objfile: tcp_plugin.so
+maxthreads: 37
+personality: server
+server address pool:
+address list:
+        0.0.0.0 - 0.0.0.0 :10000 (1)
+
+dumping distributions (first 10): 
+active_sessions: 37 
+file_sizes: 15150 807481 157679 23465 4930 39188 4418 56341 10863 
+11:06:04 sev(07) stopping plugin TcpServer
+11:06:04 sev(00) TcpServer: plugin stopped - threads killed and reaped
+11:06:04 sev(07) starting plugin TcpServer
+11:06:04 sev(02) TcpServer: no plugin state existed on start - created
+11:06:04 sev(01) TcpServer: started plugin with 37 threads.
+11:06:04 sev(01) <stopping plugins: TcpServer:ok >\ 
+   <starting plugins: TcpServer:ok >
+11:06:04 sev(09) harpoon started.  verbosity<10>warp_factor<300>\
+    autoincr?<1>continuousrun?<0>
+11:06:04 sev(05) 000.00 - emulation time tick
+
+@dots{}
+
+@key{CTRL-c}
+going down in a ball of flames...
+$ 
+@end smallexample
+
+Note that:
+@enumerate
+@item the variable @code{LD_LIBRARY_PATH} was set prior to starting Harpoon,
+and was specified using Bourne shell syntax;
+@item the start up script was not used, so the above variable had to be set;
+@item the @option{-c} flag was used so that Harpoon will continuously
+cycle over its list of active sessions---this is typically what is desired
+for a server;
+@item the sixth log line (starting ``@code{11:06:04 sev(01) <stopping plugins: TcpServer:ok >}'' indicated that initial starting of the plugin was successful 
+(note that the plugin is first stopped and then started---this is normal);
+@item each log line has the wall-clock time (hour:minute:second), a 
+severity indication (ranging from 0, most important, to 10, debug jabber), 
+Harpoon emulation time (epoch.fractional epoch), and the actual log message
+(note that the severity levels are currently rather inconsistent---sorry);
+@item the process was stopped by hitting @key{CTRL-c}.
+@end enumerate
+
+The client side startup looks very similar, so it is not shown.  Using
+either your own monitoring tools or the XML-RPC scripts (e.g., 
+@command{stats.py}), you should be able to see evidence of traffic flowing.
+
+
+@node Example Using Two Hosts, Bidirectional Traffic at Different Rates
+@appendixsec Example Using Two Hosts, Bidirectional Traffic at Different Rates
+
+Taking the previous example, we now want to do the following:
+@enumerate
+@item move the installation to two different hosts;
+@item generate traffic in two directions;
+@item set up traffic so 10 Mbps is generated in one direction and
+20 Mbps is generated in the other direction.
+@end enumerate
+
+@cindex traffic volume, tuning
+@cindex harpoon_reconf.py tool
+Assume that host A has an IP address of @code{10.0.1.1}, and host B has
+an address of @code{10.0.1.2}.  Assume also that we want the volume to be
+relatively steady over 300 second intervals.
+It's easiest if we work backwards based
+on the requirements above.  First, we want to find out how many active
+sessions we need for generating 10Mbps, and how many sessions for 20 Mbps.
+To accomplish this, we need to use the @command{harpoon_reconf.py} script:
+
+@smallexample
+$ harpoon_reconf.py -c tcp_client_ex2.xml -s tcp_server_ex2.xml -i 300 \ 
+   -r 10000000 -d
+target volume:  375000000.0
+interval duration:  300
+client conf file:  ../examples/tcp_client_ex2.xml
+server conf file:  ../examples/tcp_server_ex2.xml
+target: 375000000.0 carry: 0
+targetbytes 375000000.0 simbytes 407692953 median 7 mean 6 \ 
+   stdev 1.50339682726 max 9 flows 3758
+number of sessions should be 6 to achieve volume of  375000000 bytes \ 
+   (10000000.0 bits/sec)
+@end smallexample
+
+As arguments to @command{harpoon_reconf.py}, we supply the two existing
+configuration files (@file{tcp_client_ex2.xml} and @file{tcp_server_ex2.xml}), 
+the interval duration (300 seconds), and the desired rate (10000000 bits per 
+second).  (We also supplied the @option{-d} flag to get a little more verbose
+output.)  We see that there should be 6 sessions configured to produce
+10 Mbps.  In a similar way, we find that there should be 11 sessions configured
+to produce 20 Mbps.
+
+Next, we need to create some new configuration files based on our existing
+files.  Since the source and destination addresses for our clients are 
+different, we need two separate client configuration files.  We'll use 
+default addresses for the server, so we only need one server config file
+for both machines.
+
+The steps should be:
+@enumerate
+@item copy @file{tcp_client_ex2.xml} to @file{clientA.xml} and 
+@file{clientB.xml};
+@item edit @file{clientA.xml} to have source address of @code{10.0.1.1},
+destination address of @code{10.0.1.2}, and number of active sessions 
+as the single value 6 (also make sure that @code{maxthreads} attribute
+is set to at least 6);
+@item edit @file{clientB.xml} to have source address of @code{10.0.1.2},
+destination address of @code{10.0.1.1}, and number of active sessions 
+as the single value 11 (also make sure that @code{maxthreads} attribute
+is set to at least 11);
+@item move @file{clientA.xml} and a copy of @file{tcp_server_ex2.xml} to
+host A, and @file{clientB.xml} and a copy of @file{tcp_server_ex2.xml} to
+host B;
+@item start up servers;
+@item start up clients.
+@end enumerate
+
+Once we start things up, we see that the 10 second averages over one 50
+second period (in the 10Mbps direction) are: 15212977, 10309469, 9073456, 
+9846232, 14869665, which gives an average of about 11.8Mbps.  Over a longer
+period, the average comes closer to 10Mbps, though generally will never
+be exactly 10Mbps.  It should, however, be close over the range of an
+interval duration.  Again, the quality of the match depends on a number 
+of things, including the interval duration, the maximum inter-connection
+time (specified when using the self-configuration tools),
+and the nature of the inter-connection
+and file size distributions (heavy-tailed distributions need to be sampled
+over a long duration for the sample mean to come close to the distributional
+mean).
+
+For the 20Mbps direction, we also take 10 second averages using SNMP.  Over
+a 160 second duration, the samples are: 
+14028319, 23009625, 19027488, 20827397, 31798955, 32786164, 13115353, 15678779, 
+13945478, 11020225, 14158496, 10773346, 15449599, 18931181, 24803243, 26993437
+which gives an average of 19.1Mbps---pretty close to 20Mbps, even over
+a shorter interval and the specified 300 seconds.
+
+@appendixsec Example with Three Hosts
+
+Finally, we want to do the following:
+@enumerate
+@item set up two client machines (A and B) to make requests to a single server;
+@item generate 10 Mbps on reverse path to client A, and 5 Mbps on reverse path
+to client B;
+@item set up two server processes to handle the load, so that one process
+serves client A, and the other process serves client B.
+@end enumerate
+
+To our network of hosts A and B, we add a new machine, host C, with IP address
+@code{10.0.1.3}.  We'll use host C as our server.
+
+The easiest thing is to set up the server config files.  Since we want
+to set up two processes to handle the server load, we'll need two configuration
+files:
+@enumerate
+@item copy the original server config file @file{tcp_server_ex2.xml} to
+@file{serverA.xml} and @file{serverB.xml};
+@item edit @file{serverA.xml} to listen on port 10001 for client connections
+from host A (find the address pool toward the end of the file);
+@item edit @file{serverB.xml} to listen on port 10002 for client connections
+from host B (find the address pool toward the end of the file);
+@item move these two config files to host C.
+@end enumerate
+
+The server processes can now be started.  You may wish to start them in
+the background, writing to separate log files.  The other item you should
+be aware of is that the XML-RPC ports should be set differently from the
+default, otherwise these servers will clash.  Assuming we've already
+set @code{LD_LIBRARY_PATH}, the start up lines should be something like:
+
+@smallexample
+$ harpoon -f serverA.xml -p 8181 -l serverA.log -w300 -c -v10 &
+$ harpoon -f serverB.xml -p 8182 -l serverB.log -w300 -c -v10 &
+@end smallexample
+
+Now, we need to set up the client config files.  Since we already set the 
+client source address in the previous example (see @pxref{Example Using Two Hosts, Bidirectional Traffic at Different Rates, ,example with two hosts and bidirectional traffic}), we just need to set the destination addresses and ports
+correctly, and set the number of active sessions to produce the desired
+volumes.
+
+@cindex harpoon_reconf.py tool
+First, we need to find out how many sessions should be active to produce
+5Mbps:
+@smallexample
+$ harpoon_reconf.py -c clientB.xml -s serverB.xml -i 300 -r 5000000 -d
+target volume:  187500000.0
+interval duration:  300
+client conf file:  ../examples/tcp_client_ex2.xml
+server conf file:  ../examples/tcp_server_ex2.xml
+target: 187500000.0 carry: 0
+targetbytes 187500000.0 simbytes 209525866 median 4 mean 3 \ 
+   stdev 0.891882585016 max 5 flows 2050
+number of sessions should be 3 to achieve volume of  187500000 bytes \ 
+   (5000000.0 bits/sec)
+@end smallexample
+
+@command{harpoon_reconf.py} shows that there should be three sessions active
+to produce 5Mbps.  
+
+Now, we can edit the client config files and start the clients up:
+@enumerate
+@item edit @file{clientA.xml} to have host C (@code{10.0.1.3}) as the 
+destination address and 10001 for the destination port
+(note that we already have the number of active sessions set to produce
+10Mbps);
+@item edit @file{clientB.xml} to have host C (@code{10.0.1.3}) as the
+destination address and 10002 for the destination port;
+@item also in @file{clientB.xml}, set the number of active sessions to three.
+@end enumerate
+
+Now, start up the clients:
+@smallexample
+hostA$ harpoon -f clientA.xml -w300 -v10
+@dots{}
+hostB$ harpoon -f clientB.xml -w300 -v10
+@end smallexample
+
+@cindex stats.py tool
+After a while, we check the server A process to see how much traffic
+is being generated using the @command{stats.py} script:
+
+@smallexample
+$ stats.py -u http://hostC:8181/
+stats for  <ServerProxy for hostC:8181/>
+server-wide information:
+        emulation_interval   0
+----
+plugin-specific information:
+
+        TcpServer is running - up for  117  seconds
+                target threads = 37  active threads = 37
+                num_transfer = 639
+                send_bandwidth_total_bps = 4588290.0
+                send_bandwidth_recent_bps = 5593370.0
+                bytes_sent_total = 67103700.0
+                bytes_sent_recent = 53137000.0
+                personality = server
+@end smallexample
+
+We see that about 5Mbps is being generated, which is what we wanted.
+
+Note that for all these examples, we have not specified any physical 
+connections, any emulated round-trip times, routes, or the like.  These
+configuration settings are outside the domain of Harpoon.  You should
+set these parameters based on requirements for your tests.  You should
+also be aware that changing these network parameters (as opposed to
+application layer parameters in Harpoon) can make very significant
+differences in the nature of the generated traffic.  Refer to the
+Harpoon technical paper for examples of such differences.  
+
+
+@cindex XML configuration schema
+@anchor{XML Configuration Schema}
+@appendix XML Configuration Schema
+
+The schema defining TCP plugin configuration files is given below for 
+reference.  (This file lives in the documentation subdirectory of the
+Harpoon software distribution.)  Someday maybe there will be a nice parser 
+generator to justify this file's existence.  (But then I'll have to
+fix the logical bugs in the file...)
+
+
+@smallexample
+@verbatim
+
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+<xsd:annotation>
+   <xsd:documentation xml:lang="en">
+
+   this is an xml schema for harpoon configuration files.
+   copyright 2004 joel sommers.
+
+   an xml schema is a way to define the structure of xml documents using
+   xml itself.  note that dtd (document type definitions) have a similar
+   function, yet are written using sgml rather than xml.  for more 
+   info, see: http://www.w3.org/TR/xmlschema-1/.  a useful validator
+   on the web is at: 
+   http://apps.gotdotnet.com/xmltools/xsdvalidator/Default.aspx.  
+
+   <!--
+        $Id: appendices.texi,v 1.12 2005-08-05 19:36:35 jsommers Exp $
+     -->
+
+   </xsd:documentation>
+</xsd:annotation>
+
+
+<xsd:element name="harpoon_plugins" type="pluginList" />
+
+<xsd:complexType name="pluginList">
+  <xsd:sequence>
+    <xsd:element name="plugin" 
+                 minOccurs="1" maxOccurs="unbounded" 
+                 type="pluginSpecifier" /> 
+  </xsd:sequence>
+</xsd:complexType>
+
+
+<xsd:complexType name="pluginSpecifier">
+   <xsd:sequence>
+      <xsd:element name="config_file" type="xsd:string" 
+                   minOccurs="0" maxOccurs="unbounded" />
+
+      <!-- 
+        NB: these element are only required for implementation of TCP 
+        sources, and there are different specific requirements at
+        a server or client (which are not specified in this schema).
+        also, there are different elements required for different 
+        sources.  refer to the manual...
+
+        NB: also, defining the sub-elements of the plugin as a sequence
+        is overly restrictive, since they must appear in the same order
+        as below.  in the actual code, we don't make that restriction;
+        elements can appear in any order.
+        -->
+
+      <xsd:element name="interconnection_times" type="float_list" 
+                   minOccurs="0" maxOccurs="unbounded" />
+
+      <xsd:element name="active_sessions" type="int_list" 
+                   minOccurs="0"  maxOccurs="unbounded" />
+
+      <xsd:element name="file_sizes" type="int_list" 
+                   minOccurs="0"  maxOccurs="unbounded" />
+
+      <xsd:element name="address_pool" type="addressList"
+                   minOccurs="0" maxOccurs="unbounded" />
+
+  </xsd:sequence>
+
+  <xsd:attribute name="name" type="xsd:string" use="required"/>
+  <xsd:attribute name="objfile" type="xsd:string" use="required"/>
+  <xsd:attribute name="maxthreads" type="xsd:int" use="required"/>
+  <xsd:attribute name="personality" type="personalityType" 
+                 use="optional"/>
+
+</xsd:complexType>
+
+
+<xsd:simpleType name="int_list">
+  <xsd:list itemType="xsd:unsignedLong"/>
+</xsd:simpleType>
+
+<xsd:simpleType name="float_list">
+  <xsd:list itemType="xsd:float"/>
+</xsd:simpleType>
+
+<xsd:simpleType name="personalityType">
+  <xsd:restriction base="xsd:string">
+    <xsd:enumeration value="client"/>
+    <xsd:enumeration value="server"/>
+    <xsd:enumeration value="unknown"/>
+  </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="addressPoolType">
+  <xsd:restriction base="xsd:string">
+    <xsd:enumeration value="client_source_pool"/>
+    <xsd:enumeration value="client_destination_pool"/>
+    <xsd:enumeration value="server_pool"/>
+  </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:complexType name="addressList">
+   <xsd:sequence>
+      <xsd:element name="address" 
+                   minOccurs="1" maxOccurs="unbounded" 
+                   type="addressSpecifier"/>
+   </xsd:sequence>
+   <xsd:attribute name="name" type="addressPoolType" use="required"/>
+</xsd:complexType>
+
+<xsd:complexType name="addressSpecifier">
+  <xsd:attribute name="ipv4" type="ipv4Type" use="required"/>
+
+  <!-- NB: not restrictive enough -->
+  <xsd:attribute name="port" type="xsd:nonNegativeInteger" 
+                 use="required"/>
+</xsd:complexType>
+
+<xsd:simpleType name="ipv4Type">
+  <xsd:restriction base="xsd:string">
+     <!-- NB: not completely accurate, but sufficient for now -->
+     <xsd:pattern value="\d{1,3}(\.\d{1,3}){0,3}(\/(\d+)){0,1}" />
+  </xsd:restriction>
+</xsd:simpleType>
+
+</xsd:schema>
+@end verbatim
+@end smallexample
+
+
+
+@cindex traffic generation plugins
+@node Creating New Traffic Generation Modules
+@appendix Creating New Traffic Generation Modules
+
+Creating a new traffic generation module can be as simple as
+subclassing the @code{HarpoonPlugin} class.  There are five pure
+virtual methods that must be overwritten to accomplish this:
+
+@itemize @bullet
+@item @code{bool init(HarpoonPluginConfig*)}
+
+@item @code{void client_session(void)}
+
+@item @code{void server_session(void)}
+
+@item @code{void stats(std::ostream&)}
+
+@item @code{void shutdown(void)}
+
+@end itemize
+
+A toy example is given below.  It is a good idea to review the
+documentation and code for the @code{TCPPlugin} before attempting to
+write your own plugin.  
+
+Note in the example below that the C symbol @code{factory_generator} is the
+symbol for which @command{harpoon} searches.  This function returns just
+returns a new traffic generator object that implements the five specific 
+entrypoints named above.
+
+There are some tricks to maintaining common data structures for a plugin. 
+See the @code{TCPPlugin} for documentation and an example of this behavior.
+
+
+@cindex plugin code example
+@cindex plugins
+@cindex plugin file
+@smallexample
+@verbatim
+class DummyPlugin : public HarpoonPlugin
+{
+public:
+   DummyPlugin() : HarpoonPlugin() {}
+   virtual ~DummyPlugin() {}
+
+   // plugin general, and thread specific configuration.  this method
+   // is called for every thread, so you must be careful not to
+   // re-initialize anything.
+   virtual bool init(HarpoonPluginConfig *hpc)
+   {
+       HarpoonPlugin::init(hpc);
+       return true;
+   }
+
+   // if plugin personality is client, this method is called
+   virtual void client_session()
+   {
+       std::cerr << "dummy client session begin" << std::endl;
+       sleep(10);
+       std::cerr << "dummy client session end" << std::endl;
+   }
+
+   // if plugin personality is server, this method is called
+   virtual void server_session()
+   {
+       std::cerr << "dummy server session begin" << std::endl;
+       sleep(10);
+       std::cerr << "dummy server session end" << std::endl;
+   }
+
+   // called for all threads when the plugin is being shut down.
+   virtual void shutdown()
+   {
+       std::cerr << "dummy shutdown" << std::endl;
+       return;
+   }
+
+   // best to check your own personality here to decide what stats
+   // to return.
+   virtual void stats(std::ostream &os)
+   {
+       XmlRpcUtil::encode_struct_value(os, "dummystats", "no stats!");
+   }
+};
+
+/*
+ * factory function.  "factory_generator" is the C symbol we look for
+ * when loading harpoon plugins.  (We use a C factory function to get
+ * around C++ name mangling issues.)
+ */
+extern "C"
+{
+  Harpoon::DummyPlugin *factory_generator(void)
+  {
+     return (new Harpoon::DummyPlugin()); 
+  }
+}
+@end verbatim
+@end smallexample
+

@@ -1,0 +1,332 @@
+@c
+@c $Id: running.texi,v 1.6 2005-08-05 19:36:35 jsommers Exp $
+@c
+
+@c
+@c Copyright 2004, 2005  Joel Sommers.  All rights reserved.
+@c 
+@c This file is part of Harpoon, a flow-level traffic generator.
+@c 
+@c Harpoon is free software; you can redistribute it and/or modify
+@c it under the terms of the GNU General Public License as published by
+@c the Free Software Foundation; either version 2 of the License, or
+@c (at your option) any later version.
+@c 
+@c Harpoon is distributed in the hope that it will be useful,
+@c but WITHOUT ANY WARRANTY; without even the implied warranty of
+@c MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+@c GNU General Public License for more details.
+@c 
+@c You should have received a copy of the GNU General Public License
+@c along with Harpoon; if not, write to the Free Software
+@c Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+@c
+
+@node Running Harpoon
+@chapter Running Harpoon
+
+
+@section The @command{harpoon} executable
+
+@command{harpoon} is the executable used to load modules for traffic
+generation.  Traffic generation is not implemented directly in
+@command{harpoon}, it is rather a manager of traffic generation plugins.
+Using command line parameters and an external management interface
+(XML-RPC) you can load, unload, start, stop, and query traffic
+generation modules.
+
+@anchor{harpoon command-line parameters}
+@cindex harpoon command-line parameters
+@cindex running harpoon
+@subsection @command{harpoon} command-line parameters
+
+Most configuration is done through the external management interface, but
+there are a few command line parameters for initial loading and configuration
+of @command{harpoon}.  These parameters are:
+
+@table @option
+@item -f filename
+With the @option{-f} switch you specify
+Harpoon config files to be initially loaded.  You may specify multiple
+@option{-f} parameters in order to load more than one config file.
+
+@item -l logfile
+The argument to the @option{-l} switch is a file name to which log
+messages will be appended.  By default, log messages are written to
+@code{STDERR}.
+
+@item -p port
+The @option{-p} flag sets the port that
+Harpoon's internal HTTP server listens on.  By default, this port is
+8180.
+
+@item -s seed
+The @option{-s} option sets a specific seed
+for random number generation.  If this option is not set, the random
+number generator is seeded using a combination of the current time and
+Harpoon's process ID.
+
+@item -v verbiage_level
+The @option{-v} option sets the
+level of verbosity for log messages spewed by Harpoon.  The argument
+to @option{-v} should be an integer from 0 to 10, with 0 meaning
+minimal log messages are emitted, and 10 meaning lots of program
+chatter is logged.
+
+@item -w warp_factor
+With the @option{-w} switch, you may set the number of seconds that
+comprise an @math{IntervalDuration}.  By default, this value is 60
+seconds, so if the values given in @math{P_{ActiveUsers}} represent
+the number of active users per hour, it will take 24 minutes to
+emulate a full day.  See the full Harpoon paper for some of the issues
+in setting this parameter.
+
+@item -c 
+Use the @option{-c} flag to tell Harpoon to continuously cycle over its
+values of @math{P_{ActiveSessions}}.  The default behavior is for Harpoon to
+spend @math{IntervalDuration} time on each value of @math{P_{ActiveSessions}},
+successively stepping through the series of number of active sessions and 
+stopping after the final value.  With the @option{-c} flag, Harpoon will 
+cycle indefinitely over these @math{P_{ActiveUsers}} values.
+
+@item -a 
+Use the @option{-a} switch to cause Harpoon to not automatically cycle through
+the values in @math{P_{ActiveUsers}}.  Using this flag, it is possible to
+manually (through the XML-RPC interface) cycle through intervals.  Harpoon
+will ignore the @option{-w} switch if @option{-a} is set.
+
+@item -?
+This option dumps usage information on the above
+command-line parameters.  Unrecognized options given to
+@command{harpoon} also have this effect.
+@end table
+
+In addition to @command{harpoon} command-line parameters described in
+@ref{harpoon command-line parameters}, two run-time features to be aware of are signal handlers implemented by Harpoon, and event logging capability of 
+Harpoon.
+
+@cindex signal handling
+@subsection Signals Handled by Harpoon
+
+The following table describes signals handled by Harpoon.  All other
+signals are blocked.
+
+@table @code
+@item SIGINT
+@itemx SIGTERM
+Sending an interrupt signal to Harpoon has the effect of shutting
+Harpoon down.  First, all user-level threads running plugin code are
+shut down, then the HTTP/XML-RPC listener is stopped.  Finally,
+Harpoon crumples in a heap.
+
+@item SIGUSR1
+Sending the USR1 signal has the effect of shutting down all user-level
+plugin threads.  All plugins are returned to the idle state.  Harpoon
+itself continues to process remote-interface method calls.
+
+@item SIGUSR2
+Sending the USR2 signal to Harpoon causes all plugins to be reset
+(analogous to the @code{resetAll()} XML-RPC method described below.)
+First, all plugin threads are stopped, second, the emulated hour is
+reset to 0, finally, plugin threads are restarted for all loaded
+plugins.
+@end table
+
+@node Event Logging
+@cindex event logging
+@subsection Harpoon Event Logging
+
+Logging capability within Harpoon is currently quite limited.  Using
+the @option{-v} option to the @code{harpoon} executable causes
+different levels of log messages to be written or suppressed.  All log
+messages are currently written to @code{STDERR} by default, unless an
+@option{-l} switch is given to @command{harpoon}.
+
+@node Environment Variables
+@cindex environment variables
+@cindex environment variables
+@subsection Environment Variables
+
+While there are no environment variables required specifically by
+Harpoon, many operating systems will require setting the variable
+@code{LD_LIBRARY_PATH} (or a similar variable, @emph{e.g}, 
+@code{DYLD_LIBRARY_PATH} on MacOS X) in order to make
+dynamic loading of plugins work properly.  Before starting Harpoon,
+this variable should be set to include the directory where plugin
+modules are installed (often the same directory as Harpoon, but not
+necessarily.)  You are advised to consult the relevant manual pages
+for reference (e.g., @code{ldconfig} and @code{ld.so} for Linux,
+@code{ld} and @code{ld.so.1} for Solaris, and @code{dyld} for MacOS
+X.)
+
+A script, @code{run_harpoon.sh}, is supplied with the software distribution
+to automatically set the above environment variable and then invoke
+the harpoon executable.  If you perform a @command{make install} when
+building Harpoon, this script will get installed and have the correct
+paths.  If you do not install Harpoon, the script won't work (because of
+default installation path settings).  If you want to use the script,
+simply edit it to suit your needs.
+
+
+@node Validating Configuration Files
+@cindex validating configuration files
+@cindex config file validation
+@cindex XML configuration files
+@anchor{validation of config files}
+@section Validating a configuration file with @command{config_validator}
+
+@command{config_validator} takes only one argument, the config file
+to be checked.  It parses the given config file and prints diagnostics
+on what was parsed.  Examples of config file validation are given in 
+@pxref{Validation of Configuration Files}.  The @command{config_validator}
+uses the same code internally as Harpoon (and can be quite picky!) so
+it really is a good idea to validate your config files using this tool.
+
+Another way to validate your config files is to use a general-purpose
+XML schema validation tool.  One such tool on the Web is at
+@uref{http://apps.gotdotnet.com/@-xmltools/@-xsdvalidator/@-Default.aspx}.
+The file @code{harpoon_plugins.xsd} (@pxref{XML Configuration Schema}),
+in the documentation directory of the Harpoon distribution, is an XML
+schema defining the structure of Harpoon configuration files for the TCP
+plugin.  (Note that this file @emph{only} defines the structure for TCP
+plugins, therefore its use is limited.  It is kept with the software
+distribution mainly for historical reasons.)
+For reference on XML schemas, see @uref{http://www.w3.org/XML/Schema}.
+Note that schemas serve a similar purpose as SGML DTDs, but are
+written entirely in XML.
+
+@node running selfconf
+@cindex self-configuration tools
+@cindex configuring
+@section Self-configuration Tools
+
+This section describes the command-line options for the three self-configuration
+tools, @command{harpoon_flowproc}, @command{harpoon_conf.py}, and 
+@command{harpoon_reconf.py}.
+
+@node running harpoon_flowproc
+@cindex harpoon_flowproc tool
+@subsection @command{harpoon_flowproc} 
+
+The flow record processor tool takes the flow records as standard input
+and produces a reformatted series of records (in ASCII) on standard
+output.  There are a number of limitations to this program, making it
+unsuitable for very large flow record traces. 
+
+
+@table @option
+@item -i
+One of the main tasks of @command{harpoon_flowproc} is to organize flow 
+records into a series of ``sessions'', which are connections between the
+same IP host pair initiated within some duration of time.  The @option{-i} 
+option allows the user to specify this duration of time in seconds.  By
+default, a value of 60 seconds is used.  This value should also match the
+value used for the @option{-i} to the @command{harpoon_conf.py} script.
+
+@item -n
+@command{harpoon_flowproc}, by default, expects to use @t{flow-tools} format
+flow records (unless the @t{flow-tools} library is not found).  To use
+Netflow 5 wire format records, use the @option{-n} flag.
+
+@item -w
+@command{harpoon_flowproc} performs ``flow surgery'' to coalesce flow records
+adjacent in time that are very likely referencing the same flow.  By default,
+only records containing @t{SYN} and @t{FIN} or @t{RST} flags will be used 
+(``well-formed'' flows).  To relax this requirement, use the @option{-w} flag.
+Using this option, no flow records will be ignored based on lack of TCP flags.
+Note that flow surgery will not be performed if there are no TCP flags
+present, regardless whether the @option{-w} option is set.
+@end table
+
+
+@node running harpoon_conf.py
+@cindex harpoon_conf.py tool
+@subsection @command{harpoon_conf.py}
+
+The @command{harpoon_conf.py} Python script takes the output of 
+@command{harpoon_flowproc} and produces XML configuration files that can
+be used by Harpoon.  While the configuration files may need some manual
+tweaking for a particular environment, they can often be used right away.
+@command{harpoon_conf.py} has one required argument, the file produced
+from running @command{harpoon_flowproc}.  All options listed below are 
+not required.
+
+@table @option
+@item -s
+Specify the point in time (floating point seconds) after which items
+from the input file should be used.  This is an absolute time (i.e., not
+relative to the beginning of the trace).  You might use this flag if you
+want to restrict @command{harpoon_conf.py} to only process output records
+for a particular time interval.
+
+@item -e
+Specify the point in time (floating point seconds) before which items
+from the input file should be used.  This is an absolute time (i.e., not
+relative to the beginning of the trace).  You'd probably use this flag in
+conjunction with @option{-e} to only process output records
+for a particular time interval.
+
+@item -i
+Specify the value of @math{IntervalDuration} to use.  By default, a value
+of 300 seconds is used.  Generally, a longer value such as 300 or 600 seconds
+is best.
+
+@item -m
+Specify the maximum number of lines to process from the input file.  This
+option is probably less useful unless you're doing some debugging.  Normally,
+using the @option{-s} and @option{-e} options are what you should really use
+if you want to only process records over a particular time interval.
+
+@item -p
+Specify a string to use as a prefix for output files.  If the string 
+@file{testprefix} is used, for example, the XML configuration files
+@file{testprefix_tcpclient.xml} and @file{testprefix_tcpserver.xml} will
+be produced.  The default prefix is @code{harpoonconf}.
+
+@item -d
+Turn on some debugging chatter.  Multiple @option{-d} options cause more
+chatter.
+
+@item -D
+Specify a client destination address pool as a CIDR prefix.  For example,
+@code{-D '192.168.1.0/24'}.  The @option{-D} option may be specified 
+multiple times.
+
+@item -S
+Specify a client source address pool as a CIDR prefix.  For example,
+@code{-S '192.168.2.0/24'}.  The @option{-D} option may be specified 
+multiple times.
+Note that the server address defaults to @code{0.0.0.0} with port 10000.
+
+@end table
+
+
+@node running harpoon_reconf.py
+@cindex harpoon_reconf.py tool
+@subsection @command{harpoon_reconf.py}
+
+The @command{harpoon_reconf.py} Python script reads existing client and
+server config files and retunes them to produce specific traffic volumes.
+Only bitrates can be specified at this time.
+
+
+@table @option
+@item -c
+Use this option to specify the client config file. This is a required option.
+
+@item -s
+Use this option to specify the server config file.  This is a required option.
+
+@item -i
+Specify the value of @math{IntervalDuration} with the @option{-i} option.
+Default value is 300 seconds.
+
+@item -r
+Specify the target rate in bits per second using this option.  This is
+a required option.
+
+@item -d
+Turn on debugging chatter.
+
+@end table
+
