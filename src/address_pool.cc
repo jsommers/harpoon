@@ -38,6 +38,7 @@
 #include <assert.h>
 
 #include "address_pool.hh"
+#include "stdlib.h"
 
 namespace Harpoon
 {
