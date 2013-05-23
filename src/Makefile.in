@@ -47,7 +47,7 @@ LIBS=@LIBS@
 LDFLAGS=@LDFLAGS@
 TEMPLATEDIR=@TEMPLATEDIR@
 
-.PHONY: misc plugins
+.PHONY: plugins
 
 all: plugins $(BINARIES) 
 
@@ -59,21 +59,15 @@ config_validator: address_pool.o
 	$(CXX) -o $@ $(OPT) configurator.o address_pool.o $(LDFLAGS) $(LIBS)
 	rm -f configurator.o
 
-misc:
-	@echo "making miscellaneous tools."
-	$(MAKE) -C misc
-
 plugins:
 	@echo "making plugins."
 	$(MAKE) -C plugins
 
 clean:
-	$(MAKE) -C misc clean
 	$(MAKE) -C plugins clean
 	rm -rf *~ *.o $(BINARIES) $(TEMPLATEDIR)
 
 distclean: clean
-	$(MAKE) -C misc distclean
 	$(MAKE) -C plugins distclean
 	rm -f config.h Makefile run_harpoon.sh
 

@@ -130,7 +130,7 @@ AC_CHECK_TYPE(socklen_t, AC_DEFINE(SOCKLEN_T,socklen_t), AC_DEFINE(SOCKLEN_T,int
  # include <sys/socket.h>
  # endif])
 
-AC_CONFIG_FILES([Makefile src/Makefile src/plugins/Makefile src/misc/Makefile doc/Makefile selfconf/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile src/plugins/Makefile doc/Makefile selfconf/Makefile])
 AC_CONFIG_FILES([examples/tcp_client.xml examples/tcp_server.xml examples/tcp_client_ex2.xml examples/tcp_server_ex2.xml examples/udp_client.xml examples/udp_server.xml examples/dummy_plugin.xml examples/inftcp_client.xml examples/inftcp_server.xml])
 AC_CONFIG_FILES([src/run_harpoon.sh])
 AC_SUBST(SHLIB_EXT)
