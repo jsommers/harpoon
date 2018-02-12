@@ -737,7 +737,7 @@ sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
-docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
+docdir='${datarootdir}/docs/${PACKAGE_TARNAME}'
 infodir='${datarootdir}/info'
 htmldir='${docdir}'
 dvidir='${docdir}'
@@ -1287,7 +1287,7 @@ Fine tuning of the installation directories:
   --infodir=DIR           info documentation [DATAROOTDIR/info]
   --localedir=DIR         locale-dependent data [DATAROOTDIR/locale]
   --mandir=DIR            man documentation [DATAROOTDIR/man]
-  --docdir=DIR            documentation root [DATAROOTDIR/doc/harpoon]
+  --docdir=DIR            documentation root [DATAROOTDIR/docs/harpoon]
   --htmldir=DIR           html documentation [DOCDIR]
   --dvidir=DIR            dvi documentation [DOCDIR]
   --pdfdir=DIR            pdf documentation [DOCDIR]
@@ -3671,7 +3671,7 @@ else
 fi
 
 
-ac_config_files="$ac_config_files Makefile src/Makefile src/plugins/Makefile doc/Makefile selfconf/Makefile"
+ac_config_files="$ac_config_files Makefile src/Makefile src/plugins/Makefile docs/Makefile selfconf/Makefile"
 
 ac_config_files="$ac_config_files examples/tcp_client.xml examples/tcp_server.xml examples/tcp_client_ex2.xml examples/tcp_server_ex2.xml examples/udp_client.xml examples/udp_server.xml examples/dummy_plugin.xml examples/inftcp_client.xml examples/inftcp_server.xml"
 
@@ -4392,7 +4392,7 @@ do
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
     "src/plugins/Makefile") CONFIG_FILES="$CONFIG_FILES src/plugins/Makefile" ;;
-    "doc/Makefile") CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;
+    "docs/Makefile") CONFIG_FILES="$CONFIG_FILES docs/Makefile" ;;
     "selfconf/Makefile") CONFIG_FILES="$CONFIG_FILES selfconf/Makefile" ;;
     "examples/tcp_client.xml") CONFIG_FILES="$CONFIG_FILES examples/tcp_client.xml" ;;
     "examples/tcp_server.xml") CONFIG_FILES="$CONFIG_FILES examples/tcp_server.xml" ;;
